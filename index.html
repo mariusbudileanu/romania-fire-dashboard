@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incendii România — NASA FIRMS 2000–2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0d1b2a;
+    --navy2:  #1a2d42;
+    --navy3:  #243852;
+    --teal:   #2ec4b6;
+    --teal2:  #1a8f85;
+    --gold:   #f4a623;
+    --gold2:  #c97d10;
+    --text:   #e8f0f7;
+    --muted:  #8ba4bc;
+    --border: rgba(46,196,182,0.18);
+    --card:   #162233;
+    --red:    #e24b4a;
+  }
+
+  body {
+    background: var(--navy);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--navy2);
+    border-bottom: 1px solid var(--border);
+    padding: 1.2rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .logo { font-size: 1.5rem; }
+  header h1 { font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  header p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .badge {
+    margin-left: auto;
+    background: rgba(46,196,182,0.12);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.75rem;
+    color: var(--teal);
+    white-space: nowrap;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    padding: 1.5rem 2rem 0;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+  }
+  .kpi-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .kpi-value { font-size: 1.8rem; font-weight: 700; color: var(--teal); margin-top: 4px; line-height: 1; }
+  .kpi-sub   { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem 2rem;
+  }
+  .chart-full { grid-column: 1 / -1; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+  }
+  .card-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--teal);
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  canvas { display: block; width: 100% !important; }
+
+  footer {
+    text-align: center;
+    padding: 1.5rem 2rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 0.5rem;
+  }
+  footer a { color: var(--teal); text-decoration: none; }
+
+  @media (max-width: 768px) {
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🔥</span>
+  <div>
+    <h1>Incendii România — NASA FIRMS</h1>
+    <p>Date satelitare MODIS &amp; VIIRS · noiembrie 2000 – februarie 2026</p>
+  </div>
+  <span class="badge">431.009 detecții</span>
+</header>
+
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="kpi-label">Total detecții</div>
+    <div class="kpi-value">431k</div>
+    <div class="kpi-sub">2000–2026</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Cel mai activ an</div>
+    <div class="kpi-value">2019</div>
+    <div class="kpi-sub">48.815 detecții</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Luna de vârf</div>
+    <div class="kpi-value">Mar</div>
+    <div class="kpi-sub">97.130 detecții cumulat</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Senzor principal</div>
+    <div class="kpi-value">VIIRS</div>
+    <div class="kpi-sub">74% din detecții (2012+)</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+
+  <!-- EVOLUTIE ANUALA - full width -->
+  <div class="card chart-full">
+    <div class="card-title">Evoluție anuală a detecțiilor (2000–2025)</div>
+    <canvas id="chartAn" height="90"></canvas>
+  </div>
+
+  <!-- DISTRIBUTIE LUNARA -->
+  <div class="card">
+    <div class="card-title">Distribuție lunară (toate anile)</div>
+    <canvas id="chartLuna" height="180"></canvas>
+  </div>
+
+  <!-- MODIS vs VIIRS -->
+  <div class="card">
+    <div class="card-title">MODIS vs VIIRS pe ani</div>
+    <canvas id="chartSenzor" height="180"></canvas>
+  </div>
+
+</div>
+
+<footer>
+  Sursa datelor: <a href="https://firms.modaps.eosdis.nasa.gov/" target="_blank">NASA FIRMS</a> ·
+  Vizualizare realizată cu Chart.js ·
+  Proiect: <a href="https://github.com/mariusbudileanu/romania-fire-dashboard" target="_blank">mariusbudileanu/romania-fire-dashboard</a>
+</footer>
+
+<script>
+const TEAL  = '#2ec4b6';
+const GOLD  = '#f4a623';
+const RED   = '#e24b4a';
+const MUTED = '#8ba4bc';
+const GRID  = 'rgba(46,196,182,0.08)';
+
+Chart.defaults.color = MUTED;
+Chart.defaults.borderColor = GRID;
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+
+// ── Date ─────────────────────────────────────────────────────────────────────
+const anData = {
+  labels: [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,
+           2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,
+           2020,2021,2022,2023,2024,2025],
+  values: [71,5149,1632,2465,5111,6120,5433,4919,8260,4641,
+           4457,9527,35317,17210,19378,17956,20124,22818,27959,48815,
+           36707,27441,33868,12012,23823,29766]
+};
+
+const lunaData = {
+  labels: ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'],
+  values: [5331,20957,97130,35663,6228,7410,66480,63510,55925,55650,14331,2394]
+};
+
+const senzorData = {
+  labels: [2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025],
+  modis:  [8404,3340,4263,3522,3920,4843,3552,6049,4322,3154,4004,1240,1756,2029],
+  viirs:  [26913,13870,15115,14434,16204,17975,24407,42766,32385,24287,29864,10772,22067,27737]
+};
+
+// ── Grafic anual ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartAn'), {
+  type: 'bar',
+  data: {
+    labels: anData.labels,
+    datasets: [{
+      label: 'Detecții',
+      data: anData.values,
+      backgroundColor: anData.values.map(v => v === 48815 ? GOLD : 'rgba(46,196,182,0.55)'),
+      borderColor:     anData.values.map(v => v === 48815 ? GOLD : TEAL),
+      borderWidth: 1,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.parsed.y.toLocaleString('ro-RO')} detecții`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID } },
+      y: {
+        grid: { color: GRID },
+        ticks: { callback: v => (v/1000).toFixed(0)+'k' }
+      }
+    }
+  }
+});
+
+// ── Grafic lunar ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartLuna'), {
+  type: 'bar',
+  data: {
+    labels: lunaData.labels,
+    datasets: [{
+      label: 'Detecții',
+      data: lunaData.values,
+      backgroundColor: lunaData.values.map((v,i) =>
+        i === 2 ? GOLD : i >= 6 && i <= 9 ? 'rgba(226,75,74,0.6)' : 'rgba(46,196,182,0.5)'
+      ),
+      borderColor: lunaData.values.map((v,i) =>
+        i === 2 ? GOLD : i >= 6 && i <= 9 ? RED : TEAL
+      ),
+      borderWidth: 1,
+      borderRadius: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.parsed.y.toLocaleString('ro-RO')} detecții`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: GRID } },
+      y: {
+        grid: { color: GRID },
+        ticks: { callback: v => (v/1000).toFixed(0)+'k' }
+      }
+    }
+  }
+});
+
+// ── Grafic senzori ────────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartSenzor'), {
+  type: 'bar',
+  data: {
+    labels: senzorData.labels,
+    datasets: [
+      {
+        label: 'MODIS',
+        data: senzorData.modis,
+        backgroundColor: 'rgba(244,166,35,0.6)',
+        borderColor: GOLD,
+        borderWidth: 1,
+        borderRadius: 3,
+      },
+      {
+        label: 'VIIRS',
+        data: senzorData.viirs,
+        backgroundColor: 'rgba(46,196,182,0.55)',
+        borderColor: TEAL,
+        borderWidth: 1,
+        borderRadius: 3,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        labels: { color: MUTED, boxWidth: 12, padding: 12 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('ro-RO')}`
+        }
+      }
+    },
+    scales: {
+      x: { stacked: true, grid: { color: GRID } },
+      y: {
+        stacked: true,
+        grid: { color: GRID },
+        ticks: { callback: v => (v/1000).toFixed(0)+'k' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
