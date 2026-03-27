@@ -1,1 +1,51 @@
+name: Update FIRMS Data
+
+on:
+  schedule:
+    # Rulează zilnic la 06:00 UTC (08:00 ora României vara, 07:00 iarna)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    # Permite rulare manuală din GitHub UI (butonul "Run workflow")
+
+permissions:
+  contents: write  # necesar pentru git push
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run update script
+        env:
+          FIRMS_API_KEY: ${{ secrets.FIRMS_API_KEY }}
+        run: python scripts/update_data.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet fires_data.json fires_data.js judete_timeseries.json \
+            && echo "changed=false" >> $GITHUB_OUTPUT \
+            || echo "changed=true"  >> $GITHUB_OUTPUT
+
+      - name: Commit and push if changed
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fires_data.json fires_data.js judete_timeseries.json
+          git commit -m "Auto-update FIRMS data $(date +'%Y-%m-%d')"
+          git push
 
