@@ -116,8 +116,8 @@ select:focus,select:hover{border-color:rgba(76,201,240,.4)}
 .lbtn{background:rgba(76,201,240,.07);border:1px solid rgba(76,201,240,.18);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:.72rem;cursor:pointer;transition:.15s}
 .lbtn.active{background:rgba(76,201,240,.18);border-color:rgba(76,201,240,.5);color:var(--blue)}
 .lbtn:hover{border-color:rgba(76,201,240,.35);color:var(--text)}
-.mgrid{display:grid;grid-template-columns:2fr 1fr;gap:.75rem}
-#map{height:500px;border-radius:var(--r);border:1px solid var(--border)}
+.mgrid{display:grid;grid-template-columns:3fr 1fr;gap:.75rem}
+#map{height:560px;border-radius:var(--r);border:1px solid var(--border)}
 .mside{display:flex;flex-direction:column;gap:.75rem}
 .scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem}
 .syear{font-size:1.5rem;font-weight:800;color:var(--accent2);line-height:1}
@@ -132,7 +132,7 @@ select:focus,select:hover{border-color:rgba(76,201,240,.4)}
 .rrow{display:flex;align-items:center;gap:.45rem;padding:3px 0;border-bottom:1px solid rgba(76,201,240,.05);cursor:pointer;transition:.1s}
 .rrow:hover{background:rgba(76,201,240,.05);border-radius:4px;padding-left:4px}
 .rnum{font-size:.63rem;color:var(--muted);width:15px;text-align:right;flex-shrink:0}
-.rname{font-size:.7rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rname{font-size:.68rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rbw{width:50px;height:4px;background:rgba(255,77,28,.13);border-radius:2px;flex-shrink:0}
 .rbar{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .rval{font-size:.63rem;color:var(--accent2);width:44px;text-align:right;flex-shrink:0}
@@ -823,7 +823,7 @@ function buildHeatmap() {
   const PL=36,PT=22,PR=10,PB=16;
   const cW=Math.max(10,(W-PL-PR)/12);
   const nY=ys.length;
-  const cH=Math.max(8,Math.min(28,(Math.max(200,nY*16)-PT-PB)/nY));
+  const cH=Math.max(8,Math.min(16,(Math.max(160,nY*12)-PT-PB)/nY));
   cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+20;
   ctx.clearRect(0,0,cvs.width,cvs.height);
   ctx.font='10px Segoe UI,sans-serif'; ctx.fillStyle='#7a8fad'; ctx.textAlign='center';
@@ -1162,10 +1162,10 @@ function setLayer(n){
     if(el)el.classList.toggle('active',x===n);
   });
   const jg=document.getElementById('jud-grp'),js=document.getElementById('jud-sep');
-  const isUat=n==='uat';
-  jg.style.display=isUat?'flex':'none';
-  js.style.display=isUat?'block':'none';
-  setBasemap(isUat);
+  const isLight=n==='uat'||n==='choro';
+  jg.style.display=n==='uat'?'flex':'none';
+  js.style.display=n==='uat'?'block':'none';
+  setBasemap(isLight);
   refreshMap();
 }
 
@@ -1202,7 +1202,7 @@ function buildChoroLayer(m){
       const row=lk[f.properties.code];
       layer.bindTooltip(row?`<b>${row.JUDET_NAME}</b><br>${row.count.toLocaleString('ro-RO')} det.<br>FRP max: ${row.frp_max} MW`:`<b>${f.properties.name}</b>`,{sticky:true});
       layer.on('click',()=>{if(row)showJudetInfo(row);});
-      layer.on('mouseover',function(){this.setStyle({weight:2,color:'#4cc9f0'});});
+      layer.on('mouseover',function(){this.setStyle({weight:2,color:'#cc3300'});});
       layer.on('mouseout', function(){CLAYER.resetStyle(this);});
     }
   }).addTo(MAP);
