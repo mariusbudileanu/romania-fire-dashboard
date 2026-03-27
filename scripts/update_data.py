@@ -339,6 +339,12 @@ print('Salvez fires_data.json...')
 with open('fires_data.json', 'w') as f:
     json.dump(fires, f, separators=(',',':'))
 
+# Generăm și fires_data.js pentru încărcare sincronă în browser
+print('Generez fires_data.js...')
+fires_js = 'window.__FIRES__=' + json.dumps(fires, separators=(',',':')) + ';'
+with open('fires_data.js', 'w') as f:
+    f.write(fires_js)
+
 print('Salvez judete_timeseries.json...')
 with open('judete_timeseries.json', 'w') as f:
     json.dump(jt, f, separators=(',',':'))
