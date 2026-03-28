@@ -20,6 +20,12 @@ SOURCES  = {'VIIRS_SNPP_NRT':'SNPP','VIIRS_NOAA20_NRT':'NOAA20',
 if not API_KEY:
     print('ERROR: FIRMS_API_KEY not set'); sys.exit(1)
 
+# Schimbăm working directory la rădăcina repo-ului
+# (indiferent de unde e apelat scriptul)
+import pathlib
+os.chdir(pathlib.Path(__file__).parent.parent)
+print(f'Working dir: {os.getcwd()}')
+
 now_utc = datetime.now(timezone.utc)
 today   = now_utc.date()
 print(f'[{now_utc.isoformat()}] Start...')
