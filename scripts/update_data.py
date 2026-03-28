@@ -2,9 +2,21 @@
 scripts/update_data.py
 Rulat de GitHub Actions de 4x/zi.
 - Descarcă ultimele 5 zile de la NASA FIRMS
-- Filtrează punctele prin granițele județelor (shapely PIP)
+- Filtrează punctele prin poligoanele UAT (uat.geojson) — o singură operație PIP
+  care returnează simultan județul (cc) și UAT-ul (siruta), fără logică duală
 - Deduplicare robustă prin seen_keys
 - Actualizează fires_data.js, judete_timeseries.json, uat_stats.json, recent_fires.js
+
+Strategia de atribuire județ+UAT (un singur pas):
+  1. PIP exact pe toate cele 3186 poligoane UAT → județ + UAT garantat corect
+  2. Fallback nearest-UAT cu threshold 0.11° (~11km) pentru puncte în apă/deltă/lacuri
+     (0.11° acoperă Delta Dunării fără fals pozitive în Bulgaria/Ucraina)
+  3. Dacă distanța > 0.11° → punct în afara României, ignorat
+
+Avantaje față de varianta anterioară:
+  - Județul e derivat din UAT (cc), nu dintr-un al doilea PIP pe judete_exact.geojson
+  - Nu mai există discrepanțe județ vs UAT (aceeași geometrie, aceeași sursă)
+  - Threshold calibrat pe cazuri reale din Delta Dunării
 """
 import urllib.request, json, os, sys, hashlib
 from datetime import datetime, timedelta, timezone
@@ -17,11 +29,14 @@ DAYS     = 5
 SOURCES  = {'VIIRS_SNPP_NRT':'SNPP','VIIRS_NOAA20_NRT':'NOAA20',
             'VIIRS_NOAA21_NRT':'NOAA21','MODIS_NRT':'MODIS'}
 
+# Threshold nearest-UAT: 0.11° ≈ 11km
+# Acoperă canale/lacuri/zone costiere din Delta Dunării (max ~10.4km distanță măsurată)
+# Nu generează fals pozitive în Bulgaria (cel mai apropiat punct de graniță: ~14km)
+NEAREST_THRESHOLD = 0.11
+
 if not API_KEY:
     print('ERROR: FIRMS_API_KEY not set'); sys.exit(1)
 
-# Schimbăm working directory la rădăcina repo-ului
-# (indiferent de unde e apelat scriptul)
 import pathlib
 os.chdir(pathlib.Path(__file__).parent.parent)
 print(f'Working dir: {os.getcwd()}')
@@ -30,48 +45,62 @@ now_utc = datetime.now(timezone.utc)
 today   = now_utc.date()
 print(f'[{now_utc.isoformat()}] Start...')
 
-# ── Încărcăm granițele județelor ──────────────────────────────────────────────
-print('Încarc granițele județelor...')
-with open('judete_exact.geojson') as f:
-    gj = json.load(f)
-JUDETE_POLY = [(feat['properties']['code'], shape(feat['geometry']))
-               for feat in gj['features'] if feat.get('geometry')]
-RO_BBOX = (20.26, 43.62, 29.72, 48.27)
-print(f'  {len(JUDETE_POLY)} județe încărcate')
+# ── Încărcăm poligoanele UAT ───────────────────────────────────────────────────
+# Sursa unică de adevăr: uat.geojson cu proprietăți: siruta, name, type, cc, cn
+print('Încarc poligoanele UAT...')
+with open('uat.geojson') as f:
+    uat_gj = json.load(f)
 
-def point_in_romania(lat, lon):
-    """Returnează codul județului sau None dacă punctul nu e în România.
-    
-    Folosește fallback nearest-polygon pentru punctele care sunt în BBOX
-    dar nu cad exact într-un poligon (zone maritime, lacuri, simplificări).
+UAT_POLYS = []
+for feat in uat_gj['features']:
+    if not feat.get('geometry'):
+        continue
+    props = feat['properties']
+    UAT_POLYS.append((
+        props['siruta'],   # cod SIRUTA unic per UAT
+        props['name'],     # denumire UAT
+        props['cc'],       # cod județ (2 litere)
+        props['cn'],       # denumire județ
+        shape(feat['geometry'])
+    ))
+
+# BBOX largit față de FIRMS (Delta Dunării ajunge la ~29.72°E, dar adăugăm margine)
+RO_BBOX = (20.26, 43.62, 30.50, 48.27)
+print(f'  {len(UAT_POLYS)} UAT-uri încărcate')
+
+def find_uat(lat, lon):
     """
-    # Verificare rapidă BBOX
-    if not (RO_BBOX[0]<=lon<=RO_BBOX[2] and RO_BBOX[1]<=lat<=RO_BBOX[3]):
+    Returnează (judet_code, uat_siruta, uat_name) sau None dacă punctul
+    nu aparține României.
+
+    Pași:
+    1. Verificare rapidă BBOX
+    2. PIP exact pe toate poligoanele UAT
+    3. Nearest-UAT cu threshold NEAREST_THRESHOLD
+    """
+    if not (RO_BBOX[0] <= lon <= RO_BBOX[2] and RO_BBOX[1] <= lat <= RO_BBOX[3]):
         return None
-    
+
     pt = Point(lon, lat)
-    
-    # 1. Verificare exactă point-in-polygon
-    for code, poly in JUDETE_POLY:
+
+    # 1. PIP exact
+    for siruta, name, cc, cn, poly in UAT_POLYS:
         if poly.contains(pt):
-            return code
-    
-    # 2. Fallback: verificăm distanța minimă la cel mai apropiat poligon
-    #    Dacă e foarte aproape (<0.05°, ~5km), îl atribuim acelui județ
+            return (cc, siruta, name)
+
+    # 2. Nearest cu threshold
     min_dist = float('inf')
-    nearest_code = None
-    for code, poly in JUDETE_POLY:
+    nearest  = None
+    for siruta, name, cc, cn, poly in UAT_POLYS:
         d = pt.distance(poly)
         if d < min_dist:
             min_dist = d
-            nearest_code = code
-    
-    # Threshold: 0.05° ≈ 5km - acoperă zone maritime/lagunare din Deltă
-    if min_dist < 0.05 and nearest_code:
-        return nearest_code
-    
-    # Punct prea departe de orice județ = nu e în România
-    return None
+            nearest  = (cc, siruta, name)
+
+    if min_dist < NEAREST_THRESHOLD and nearest:
+        return nearest
+
+    return None  # Punct în afara României
 
 def make_key(r):
     """Cheie unică per detecție — hash din atribute stabile."""
@@ -122,7 +151,6 @@ with open('fires_data.json')        as f: fires     = json.load(f)
 with open('judete_timeseries.json') as f: jt        = json.load(f)
 with open('uat_stats.json')         as f: uat_stats = json.load(f)
 
-# seen_keys: set de hash-uri ale detecțiilor deja procesate
 seen_keys = set(fires.get('seen_keys', []))
 print(f'  Detecții deja văzute: {len(seen_keys)}')
 
@@ -134,21 +162,21 @@ for src_key, src_name in SOURCES.items():
     print(f'  {src_name}: {len(recs)} înregistrări brute')
     all_fetched.extend(recs)
 
-# Filtrare 1: point-in-polygon cu granițele județelor
-print('\nFiltrez prin granițele României...')
+# Filtrare: PIP pe UAT — returnează județ + UAT simultan
+print('\nFiltrez prin poligoanele UAT...')
 in_ro, out_ro = 0, 0
 romania_records = []
 for r in all_fetched:
-    code = point_in_romania(r['lat'], r['lon'])
-    if code:
-        r['judet_code'] = code
+    result = find_uat(r['lat'], r['lon'])
+    if result:
+        r['judet_code'], r['uat_siruta'], r['uat_name'] = result
         romania_records.append(r)
         in_ro += 1
     else:
         out_ro += 1
 print(f'  În România: {in_ro} | În afara: {out_ro}')
 
-# Filtrare 2: deduplicare prin seen_keys
+# Deduplicare prin seen_keys
 unique_new = []
 for r in romania_records:
     k = make_key(r)
@@ -159,24 +187,8 @@ for r in romania_records:
 
 print(f'  Noi (unice, nevăzute): {len(unique_new)}')
 
-# ── Centroizi județe pentru nearest-judet fallback ────────────────────────────
-JUDET_C = {
-    'AB':(46.18,23.80),'AR':(46.17,21.65),'AG':(44.95,24.87),'BC':(46.57,26.91),
-    'BH':(47.05,22.08),'BN':(47.13,24.50),'BT':(47.74,26.67),'BV':(45.65,25.60),
-    'BR':(45.27,27.96),'B' :(44.43,26.10),'BZ':(45.15,26.82),'CS':(45.30,22.11),
-    'CL':(44.20,27.33),'CJ':(46.78,23.60),'CT':(44.18,28.65),'CV':(45.85,26.18),
-    'DB':(44.93,25.45),'DJ':(44.31,23.80),'GL':(45.82,27.98),'GR':(43.90,25.97),
-    'GJ':(44.95,23.27),'HR':(46.38,25.48),'HD':(45.72,22.92),'IL':(44.60,27.38),
-    'IS':(47.16,27.59),'IF':(44.60,26.20),'MM':(47.65,23.88),'MH':(44.63,22.90),
-    'MS':(46.55,24.65),'NT':(46.97,26.38),'OT':(44.42,24.50),'PH':(45.10,25.98),
-    'SM':(47.80,22.87),'SJ':(47.20,23.06),'SB':(45.79,24.15),'SV':(47.63,25.73),
-    'TR':(43.98,25.00),'TM':(45.75,21.22),'TL':(45.18,29.13),'VS':(46.64,27.73),
-    'VL':(45.10,24.37),'VN':(45.70,27.00),
-}
-
 # ── Funcție salvare ───────────────────────────────────────────────────────────
 def save_all(new_pts):
-    # Păstrăm seen_keys (max 50k intrări pentru eficiență)
     sk_list = list(seen_keys)
     if len(sk_list) > 50000:
         sk_list = sk_list[-50000:]
@@ -191,26 +203,25 @@ def save_all(new_pts):
     with open('uat_stats.json','w') as f:
         json.dump(uat_stats, f, separators=(',',':'))
 
-    # recent_fires.js — toate punctele din ultimele 5 zile, filtrate la România
+    # recent_fires.js
     cutoff = (today - timedelta(days=DAYS)).strftime('%Y-%m-%d')
     try:
         old_r = json.loads(
             open('recent_fires.js').read().replace('window.__RECENT__=','').rstrip(';'))
-        # IMPORTANT: Păstrăm doar punctele care au jud VALID (cod de 2 litere)
-        old_pts = [p for p in old_r.get('points',[]) 
-                   if p['date'] >= cutoff 
-                   and p.get('jud') 
+        old_pts = [p for p in old_r.get('points',[])
+                   if p['date'] >= cutoff
+                   and p.get('jud')
                    and len(p.get('jud','')) == 2]
     except:
         old_pts = []
 
-    # new_pts deja au judet_code (filtrarea PIP s-a făcut mai sus)
     new_formatted = [{
-        'lat':  round(r['lat'], 4), 'lon': round(r['lon'], 4),
-        'date': r['date'],          'time': r['time'],
-        'src':  r['source'],        'sat':  r['satellite'],
-        'frp':  round(r['frp'], 1), 'dn':   r['daynight'],
-        'jud':  r['judet_code'],  # Garantat există (a trecut filtrul PIP)
+        'lat':  round(r['lat'], 4),  'lon': round(r['lon'], 4),
+        'date': r['date'],           'time': r['time'],
+        'src':  r['source'],         'sat':  r['satellite'],
+        'frp':  round(r['frp'], 1),  'dn':   r['daynight'],
+        'jud':  r['judet_code'],
+        'uat':  r.get('uat_name',''),
     } for r in new_pts]
 
     seen_r = set(); all_pts = []
@@ -236,7 +247,6 @@ def save_all(new_pts):
 if not unique_new:
     print('\nNimic nou — actualizez timestamp.')
     fires['kpis']['last_update'] = today.strftime('%Y-%m-%d')
-    print('Salvez...')
     save_all([])
     print(f'[{datetime.now(timezone.utc).isoformat()}] Done — 0 înregistrări noi')
     sys.exit(0)
@@ -315,8 +325,10 @@ jt_tot  = {j['JUDET_CODE']: j for j in jt['by_judet_total']}
 jm_map  = {(r['JUDET_CODE'],r['MONTH']): r for r in jt.get('by_jud_month',[])}
 
 for r in unique_new:
-    y = int(r['date'][:4]); m = int(r['date'][5:7])
-    code = r.get('judet_code') or r.get('JUDET_CODE','DJ')
+    y    = int(r['date'][:4]); m = int(r['date'][5:7])
+    code = r.get('judet_code')
+    if not code: continue
+
     jname = next((j['JUDET_NAME'] for j in jt['by_judet_total']
                   if j['JUDET_CODE']==code), code)
 
@@ -359,21 +371,14 @@ jt['national_stats']['mean_count']  = round(
     / max(len(jt['by_judet_total']),1), 1)
 
 # ── Actualizare uat_stats ─────────────────────────────────────────────────────
+# Atribuire directă prin uat_siruta din find_uat() — fără logică de aproximare
 uat_map  = {u['UAT_SIRUTA']: u for u in uat_stats.get('by_uat',[])}
 uaty_map = {(r['YEAR'],r['UAT_SIRUTA']): r for r in uat_stats.get('uat_year',[])}
-uat_by_cc = {}
-for u in uat_stats.get('by_uat',[]):
-    cc = u.get('UAT_CC','')
-    if cc not in uat_by_cc: uat_by_cc[cc] = []
-    uat_by_cc[cc].append(u)
 
 for r in unique_new:
-    y    = int(r['date'][:4])
-    code = r.get('judet_code','DJ')
-    cc_uats = uat_by_cc.get(code, [])
-    if not cc_uats: continue
-    best_uat = max(cc_uats, key=lambda u: u.get('count',0))
-    sir = best_uat['UAT_SIRUTA']
+    y   = int(r['date'][:4])
+    sir = r.get('uat_siruta')
+    if not sir: continue
 
     if sir in uat_map:
         old = uat_map[sir]; n = old['count']
@@ -388,7 +393,7 @@ for r in unique_new:
         old['frp_mean'] = round((old['frp_mean']*n + r['frp'])/(n+1), 2)
         old['count']    = n + 1
     else:
-        uaty_map[k] = {'YEAR':y,'UAT_SIRUTA':sir,'UAT_CC':code,
+        uaty_map[k] = {'YEAR':y,'UAT_SIRUTA':sir,'UAT_CC':r.get('judet_code',''),
                        'count':1,'frp_mean':round(r['frp'],2)}
 
 uat_stats['by_uat']   = list(uat_map.values())
