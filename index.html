@@ -786,9 +786,17 @@ function updateKPIs() {
 
   document.getElementById('k-tot').textContent  =total.toLocaleString('ro-RO');
   document.getElementById('k-tots').textContent =(SEL_JUD1?JUD_NAMES[SEL_JUD1]+' ':'')+`${F.yf}–${F.yt}`;
+  // Nota: k-tot afișează totalul filtrat (din by_year_src), badge-ul header afișează D.kpis.total (arhivă completă)
   document.getElementById('k-peak').textContent =peak;
-  document.getElementById('k-peaks').textContent=typeof peak==='number'?
-    getJudYearSeries(SEL_JUD1).find(r=>r.YEAR===peak)?.count.toLocaleString('ro-RO')+' det.':'';
+  if (SEL_JUD1) {
+    const pkRow = getJudYearSeries(SEL_JUD1).find(r=>r.YEAR===peak);
+    document.getElementById('k-peaks').textContent = pkRow
+      ? pkRow.count.toLocaleString('ro-RO')+' det.' : '';
+  } else {
+    const pkRow = fYears().find(r=>r.YEAR===peak);
+    document.getElementById('k-peaks').textContent = pkRow
+      ? srcTotal(pkRow).toLocaleString('ro-RO')+' det.' : '';
+  }
   document.getElementById('k-fmax').textContent =typeof fmax==='number'?fmax.toLocaleString('ro-RO',{maximumFractionDigits:0}):'—';
   document.getElementById('k-fmed').textContent =fmed;
   document.getElementById('k-night').textContent=np;
@@ -1608,9 +1616,9 @@ function frpRadius(frp) {
 }
 
 function isNRTRange(dateFrom, dateTo) {
-  // NRT disponibil pentru ultimele 5 zile
+  // NRT disponibil pentru ultimele 5 zile față de data curentă a browserului
   const cutoff = nDaysAgoStr(5);
-  return dateFrom >= cutoff;
+  return dateFrom >= cutoff && dateTo <= todayStr();
 }
 
 function loadLiveData() {
@@ -1822,6 +1830,7 @@ function showLiveDetail(p) {
     `<div style="color:var(--muted);font-size:.62rem;margin-bottom:.5rem">Fire Radiative Power</div>` +
     `Data: <b>${p.date}</b><br>` +
     `Ora: <b>${timeStr}</b><br>` +
+    `Județ: <b>${p.jud||'—'}</b><br>` +
     `Sursă: <b>${p.src}</b> · Satelit: <b>${p.sat}</b><br>` +
     `Moment: <b>${dnLabel}</b><br>` +
     `<div style="margin-top:.4rem;font-size:.63rem;color:var(--muted)">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div>`;
