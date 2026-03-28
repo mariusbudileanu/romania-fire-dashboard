@@ -3,12 +3,15 @@ name: Update FIRMS Data
 on:
   schedule:
     # Rulează zilnic la 06:00 UTC (08:00 ora României vara, 07:00 iarna)
-    - cron: '0 6 * * *'
+    - cron: '0 4,10,16,22 * * *'  # de 4 ori/zi: 06:00, 12:00, 18:00, 00:00 ora RO (vara)
   workflow_dispatch:
     # Permite rulare manuală din GitHub UI (butonul "Run workflow")
 
 permissions:
   contents: write  # necesar pentru git push
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update:
@@ -17,10 +20,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
 
@@ -36,7 +39,7 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          git diff --quiet fires_data.json fires_data.js judete_timeseries.json \
+          git diff --quiet fires_data.json fires_data.js judete_timeseries.json recent_fires.js \
             && echo "changed=false" >> $GITHUB_OUTPUT \
             || echo "changed=true"  >> $GITHUB_OUTPUT
 
@@ -45,7 +48,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fires_data.json fires_data.js judete_timeseries.json
+          git add fires_data.json fires_data.js judete_timeseries.json recent_fires.js
           git commit -m "Auto-update FIRMS data $(date +'%Y-%m-%d')"
           git push
-
