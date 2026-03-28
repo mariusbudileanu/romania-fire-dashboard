@@ -39,7 +39,7 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          git diff --quiet fires_data.json fires_data.js judete_timeseries.json recent_fires.js \
+          git diff --quiet fires_data.json fires_data.js judete_timeseries.json recent_fires.js uat_stats.json \
             && echo "changed=false" >> $GITHUB_OUTPUT \
             || echo "changed=true"  >> $GITHUB_OUTPUT
 
@@ -48,6 +48,6 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fires_data.json fires_data.js judete_timeseries.json recent_fires.js
+          git add fires_data.json fires_data.js judete_timeseries.json recent_fires.js uat_stats.json
           git commit -m "Auto-update FIRMS data $(date +'%Y-%m-%d')"
           git push
