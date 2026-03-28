@@ -1523,7 +1523,10 @@ function togglePlay(){
 
 // ── Header badges ─────────────────────────────────────────────────────────
 function updateHeaderBadges() {
-  const total = D.kpis.total || 431009;
+  // Totalul real = suma din by_year_src (sursă unică de adevăr)
+  const total = D.by_year_src
+    ? D.by_year_src.reduce((s,r)=>s+['MODIS','SNPP','NOAA20','NOAA21'].reduce((ss,k)=>ss+(r[k]||0),0),0)
+    : (D.kpis.total || 431009);
   document.getElementById('badge-total').textContent =
     total.toLocaleString('ro-RO') + ' detecții';
 
@@ -1645,9 +1648,18 @@ function loadLiveData() {
   const useNRT = isNRTRange(dateFrom, dateTo);
   const badge  = document.getElementById('live-mode-badge');
 
-  if (useNRT && window.__RECENT__) {
+  // Verificăm dacă avem date NRT pentru intervalul selectat
+  const hasNRTData = window.__RECENT__ && window.__RECENT__.count > 0 &&
+    window.__RECENT__.points.some(p => p.date >= dateFrom && p.date <= dateTo);
+
+  if (hasNRTData) {
     badge.className = 'live-mode-badge nrt';
     badge.textContent = '● NRT live';
+    loadFromRecent(dateFrom, dateTo);
+  } else if (useNRT && window.__RECENT__) {
+    // Avem fereastra NRT dar fără date pentru această perioadă
+    badge.className = 'live-mode-badge nrt';
+    badge.textContent = '● NRT (0 detecții)';
     loadFromRecent(dateFrom, dateTo);
   } else {
     badge.className = 'live-mode-badge arc';
