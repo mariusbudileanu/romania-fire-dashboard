@@ -349,6 +349,43 @@ print('Salvez judete_timeseries.json...')
 with open('judete_timeseries.json', 'w') as f:
     json.dump(jt, f, separators=(',',':'))
 
+# ── Generăm recent_fires.js — toate punctele din ultimele 5 zile ──────────
+print('Generez recent_fires.js...')
+
+# Re-descărcăm toate datele pentru a avea punctele complete (nu doar agregate)
+all_recent = []
+for source_key, source_name in SOURCES.items():
+    content = fetch_csv(source_key, DAYS)
+    records = parse_csv(content, source_name)
+    all_recent.extend(records)
+
+recent_points = []
+for r in all_recent:
+    recent_points.append({
+        'lat':  round(r['lat'],  4),
+        'lon':  round(r['lon'],  4),
+        'date': r['date'],
+        'time': str(r['time']).zfill(4),
+        'src':  r['source'],
+        'sat':  r['satellite'],
+        'frp':  round(r['frp'], 1),
+        'dn':   r['daynight'],
+    })
+
+recent_points.sort(key=lambda x: (x['date'], x['time']), reverse=True)
+
+recent_obj = {
+    'generated':    datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'days_covered': DAYS,
+    'count':        len(recent_points),
+    'points':       recent_points,
+}
+
+recent_js = 'window.__RECENT__=' + json.dumps(recent_obj, separators=(',',':')) + ';'
+with open('recent_fires.js', 'w') as f:
+    f.write(recent_js)
+
+print(f'recent_fires.js: {len(recent_points)} puncte')
 print(f'[{datetime.now().isoformat()}] Actualizare completă!')
 print(f'  Total detecții: {fires["kpis"]["total"]:,}')
 print(f'  Înregistrări adăugate: {len(new_unique)}')
