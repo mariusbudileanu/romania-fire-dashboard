@@ -228,8 +228,8 @@ footer a:hover{color:var(--accent2)}
 @media(max-width:900px){.live-grid{grid-template-columns:1fr}#live-map{height:360px}}
 
 </style>
-<script src="fires_data.js"></script>
-<script src="recent_fires.js" onerror="console.warn('recent_fires.js not found')"></script>
+<script>document.write('<script src="fires_data.js?v='+Date.now()+'"><\/script>');</script>
+<script>document.write('<script src="recent_fires.js?v='+Date.now()+'" onerror="console.warn(\'recent_fires.js not found\')"><\/script>');</script>
 </head>
 <body>
 
@@ -609,6 +609,7 @@ function switchTab(t) {
   document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el.id==='tab-'+t));
   document.querySelectorAll('.panel').forEach(el=>el.classList.toggle('active',el.id==='panel-'+t));
   if(t==='map'&&!MAP_INITED){initMap();MAP_INITED=true;}
+  if(t==='live'){if(!LIVE_INITED){initLiveMap();}else if(LIVE_MAP){setTimeout(()=>LIVE_MAP.invalidateSize(),50);}}
 }
 
 // ═══════════════════════════════════════════════════════
@@ -634,7 +635,7 @@ function initSelects() {
     ys.forEach(y=>s.insertAdjacentHTML('beforeend',`<option value="${y}">${y}</option>`));
   });
   document.getElementById('f-yf').value=2000;
-  document.getElementById('f-yt').value=2025;
+  document.getElementById('f-yt').value=Math.max(...ys);
   ['f-yf','f-yt','f-src','f-dn'].forEach(id=>
     document.getElementById(id).addEventListener('change',applyFilters));
 
@@ -649,7 +650,7 @@ function initSelects() {
 
 function resetFilters() {
   document.getElementById('f-yf').value=2000;
-  document.getElementById('f-yt').value=2025;
+  document.getElementById('f-yt').value=Math.max(...ys);
   ['f-src','f-dn'].forEach(id=>document.getElementById(id).value='ALL');
   clearJudet();
   applyFilters();
@@ -1584,6 +1585,7 @@ function initLiveMap() {
     {subdomains:'abcd', maxZoom:18}).addTo(LIVE_MAP);
   L.control.attribution({prefix:false}).addAttribution('© CartoDB · © NASA FIRMS').addTo(LIVE_MAP);
   LIVE_INITED = true;
+  setTimeout(()=>LIVE_MAP.invalidateSize(), 100);
 
   // Setăm datele implicite și încărcăm azi
   const today = todayStr();
