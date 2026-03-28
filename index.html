@@ -445,7 +445,7 @@ footer a:hover{color:var(--accent2)}
         <div class="scard" id="slider-wrap" style="display:none">
           <div class="syear" id="syear">2000</div>
           <div class="scnt" id="scnt">— detecții</div>
-          <input type="range" id="yslider" min="2000" max="2025" value="2019" oninput="onSlider(+this.value)">
+          <input type="range" id="yslider" min="2000" max="2026" value="2019" oninput="onSlider(+this.value)">
           <div class="playrow">
             <button class="playbtn" id="playbtn" onclick="togglePlay()">▶ Play</button>
             <span style="font-size:.68rem;color:var(--muted)">Viteză</span>
@@ -625,7 +625,7 @@ const GC='rgba(76,201,240,0.07)';
 // ═══════════════════════════════════════════════════════
 // FILTRE GLOBALE
 // ═══════════════════════════════════════════════════════
-let F={yf:2000,yt:2025,src:'ALL',dn:'ALL'};
+let F={yf:2000,yt:2026,src:'ALL',dn:'ALL'};
 let SEL_JUD1='', SEL_JUD2='', SEL_UAT='';
 
 function initSelects() {
@@ -650,7 +650,7 @@ function initSelects() {
 
 function resetFilters() {
   document.getElementById('f-yf').value=2000;
-  document.getElementById('f-yt').value=Math.max(...ys);
+  document.getElementById('f-yt').value=Math.max(...D.by_year_src.map(r=>r.YEAR));
   ['f-src','f-dn'].forEach(id=>document.getElementById(id).value='ALL');
   clearJudet();
   applyFilters();
