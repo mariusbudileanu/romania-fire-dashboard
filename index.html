@@ -756,7 +756,18 @@ function linReg(xs, ys) {
 function updateKPIs() {
   let total, peak, fmax, fmed, np, mPeak, mPeakCnt;
 
-  if(SEL_JUD1&&!SEL_JUD2) {
+if(SEL_JUD1 && SEL_JUD2) {
+    const series1=getJudYearSeries(SEL_JUD1), series2=getJudYearSeries(SEL_JUD2);
+    total=series1.reduce((s,r)=>s+r.count,0)+series2.reduce((s,r)=>s+r.count,0);
+    const years=[...new Set([...series1,...series2].map(r=>r.YEAR))];
+    const pk=years.map(y=>({y,c:(series1.find(r=>r.YEAR===y)?.count||0)+(series2.find(r=>r.YEAR===y)?.count||0)})).reduce((a,b)=>b.c>a.c?b:a,{y:'—',c:0});
+    peak=pk.y; fmax=Math.max(JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD1)?.frp_max||0,JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD2)?.frp_max||0);
+    fmed='—'; np='—';
+    const mA=Array(12).fill(0);
+    getJudMonthSeries(SEL_JUD1).forEach(r=>mA[r.MONTH-1]+=r.count);
+    getJudMonthSeries(SEL_JUD2).forEach(r=>mA[r.MONTH-1]+=r.count);
+    mPeak=mA.indexOf(Math.max(...mA)); mPeakCnt=mA[mPeak];
+  } else if(SEL_JUD1&&!SEL_JUD2) {
     // KPI pentru un singur județ
     const series=getJudYearSeries(SEL_JUD1);
     total=series.reduce((s,r)=>s+r.count,0);
