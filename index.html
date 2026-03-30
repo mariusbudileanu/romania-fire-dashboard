@@ -796,7 +796,7 @@ if(SEL_JUD1 && SEL_JUD2) {
   }
 
   document.getElementById('k-tot').textContent  =total.toLocaleString('ro-RO');
-  document.getElementById('k-tots').textContent =(SEL_JUD1?JUD_NAMES[SEL_JUD1]+' ':'')+`${F.yf}–${F.yt}`;
+  document.getElementById('k-tots').textContent =(SEL_JUD1&&SEL_JUD2?JUD_NAMES[SEL_JUD1]+' + '+JUD_NAMES[SEL_JUD2]+' ':SEL_JUD1?JUD_NAMES[SEL_JUD1]+' ':'')+`${F.yf}–${F.yt}`;
   // Nota: k-tot afișează totalul filtrat (din by_year_src), badge-ul header afișează D.kpis.total (arhivă completă)
   document.getElementById('k-peak').textContent =peak;
   if (SEL_JUD1) {
@@ -813,8 +813,8 @@ if(SEL_JUD1 && SEL_JUD2) {
   document.getElementById('k-night').textContent=np;
   document.getElementById('k-mon').textContent  =MONTHS[mPeak]||'—';
   document.getElementById('k-mons').textContent =(mPeakCnt||0).toLocaleString('ro-RO')+' det.';
-  document.getElementById('fstatus').textContent=total.toLocaleString('ro-RO')+
-    (SEL_JUD1?` detecții în ${JUD_NAMES[SEL_JUD1]}`:` detecții (${((total/D.kpis.total)*100).toFixed(1)}%)`);
+document.getElementById('fstatus').textContent=total.toLocaleString('ro-RO')+
+    (SEL_JUD2?` detecții în ${JUD_NAMES[SEL_JUD1]} + ${JUD_NAMES[SEL_JUD2]}`:SEL_JUD1?` detecții în ${JUD_NAMES[SEL_JUD1]}`:` detecții (${((total/D.kpis.total)*100).toFixed(1)}%)`);
 }
 
 // ═══════════════════════════════════════════════════════
