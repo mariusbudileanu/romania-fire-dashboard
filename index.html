@@ -1050,7 +1050,7 @@ function buildHeatmap() {
   const cW=Math.max(10,(W-PL-PR)/12-6);
   const nY=ys.length;
     const cH=Math.max(12,Math.min(22,(Math.max(200,nY*16)-PT-PB)/nY));
-  cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+35;
+  cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+50;
   ctx.clearRect(0,0,cvs.width,cvs.height);
   ctx.font='12px Segoe UI,sans-serif'; ctx.fillStyle='#7a8fad'; ctx.textAlign='center';
   MONTHS.forEach((m,i)=>ctx.fillText(m,PL+i*(cW+2)+cW/2,PT-4));
@@ -1068,10 +1068,10 @@ function buildHeatmap() {
   const lgW=12*(cW+2)-2;
   const lg=ctx.createLinearGradient(PL,0,PL+lgW,0);
   lg.addColorStop(0,'#1a2540');lg.addColorStop(.35,'#ff4d1c');lg.addColorStop(.65,'#ff8c42');lg.addColorStop(1,'#ffd166');
-  ctx.fillStyle=lg; ctx.beginPath(); ctx.roundRect(PL,cvs.height-14,lgW,7,3); ctx.fill();
+  ctx.fillStyle=lg; ctx.beginPath(); ctx.roundRect(PL,cvs.height-30,lgW,7,3); ctx.fill();
   ctx.font='11px Segoe UI'; ctx.fillStyle='#7a8fad';
-  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height-3);
-  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height-3);
+  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height-14);
+  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height-14);
   const mtt=document.getElementById('mtt');
   cvs.onmousemove=e=>{
     const r=cvs.getBoundingClientRect();
