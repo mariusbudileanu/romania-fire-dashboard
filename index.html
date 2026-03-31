@@ -1046,8 +1046,8 @@ function buildHeatmap() {
 
   const vals=Object.values(hdata),mx=vals.length?Math.max(...vals):1;
   const W=cvs.parentElement.offsetWidth||1000;
-  const PL=36,PT=22,PR=10,PB=16;
-  const cW=Math.max(10,(W-PL-PR)/12);
+  const PL=36,PT=22,PR=10,PB=30;
+  const cW=Math.max(10,(W-PL-PR)/12-2);
   const nY=ys.length;
     const cH=Math.max(12,Math.min(22,(Math.max(200,nY*16)-PT-PB)/nY));
   cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+20;
@@ -1070,8 +1070,8 @@ function buildHeatmap() {
   lg.addColorStop(0,'#1a2540');lg.addColorStop(.35,'#ff4d1c');lg.addColorStop(.65,'#ff8c42');lg.addColorStop(1,'#ffd166');
   ctx.fillStyle=lg; ctx.beginPath(); ctx.roundRect(PL,cvs.height-14,lgW,7,3); ctx.fill();
   ctx.font='11px Segoe UI'; ctx.fillStyle='#7a8fad';
-  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height-2);
-  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height-2);
+  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height-4);
+  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height-4);
 
   const mtt=document.getElementById('mtt');
   cvs.onmousemove=e=>{
