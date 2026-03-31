@@ -1884,7 +1884,40 @@ function showLiveDetail(p) {
   // Centrăm harta pe punct
   if (LIVE_MAP) LIVE_MAP.setView([p.lat, p.lon], Math.max(LIVE_MAP.getZoom(), 9));
 }
+// ── Tooltip sistem ──
+const TOOLTIPS = {
+  'FRP maxim':     '<strong>FRP Maxim</strong>Cea mai mare valoare de Fire Radiative Power înregistrată. Indică intensitatea maximă a unui incendiu.',
+  'FRP median':    '<strong>FRP Median</strong>Valoarea tipică de energie radiată. Util pentru a compara intensitatea medie între județe sau ani.',
+  'FRP':           '<strong>Fire Radiative Power</strong>Energia radiată de foc, măsurată în MW. Un incendiu de pădure activ depășește de obicei 50 MW.',
+  'MODIS':         '<strong>MODIS</strong>Senzor NASA cu rezoluție de 1 km. Operațional din 2000, oferă cea mai lungă serie temporală.',
+  'VIIRS SNPP':    '<strong>VIIRS SNPP</strong>Senzor cu rezoluție de 375 m, operațional din 2012. Detectează incendii mai mici decât MODIS.',
+  'NOAA-20':       '<strong>NOAA-20</strong>Satelit lansat în 2017, echipat cu VIIRS. Rezoluție 375 m, completează acoperirea SNPP.',
+  'NOAA-21':       '<strong>NOAA-21</strong>Cel mai nou satelit din rețea, lansat în 2022. Rezoluție 375 m.',
+  'detecție':      '<strong>Detecție termică</strong>Nu este un incendiu confirmat — este un pixel cu temperatură anormal de ridicată detectat din satelit. Același foc poate genera mai multe detecții.',
+  'detecții':      '<strong>Detecții termice</strong>Nu sunt incendii confirmate — sunt pixeli cu temperatură anormal de ridicată. Același foc poate apărea de mai multe ori (sateliți diferiți, treceri multiple).',
+  'FIRMS':         '<strong>FIRMS</strong>Fire Information for Resource Management System — sistemul NASA care procesează și distribuie datele de detecție a incendiilor în timp real.',
+};
 
+const ttBox = document.getElementById('tt-box');
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tt]');
+  if (!el) return;
+  const key = el.dataset.tt;
+  if (!TOOLTIPS[key]) return;
+  ttBox.innerHTML = TOOLTIPS[key];
+  ttBox.classList.add('visible');
+});
+document.addEventListener('mousemove', e => {
+  if (!ttBox.classList.contains('visible')) return;
+  const x = e.clientX + 14;
+  const y = e.clientY + 14;
+  ttBox.style.left = (x + 280 > window.innerWidth ? e.clientX - 294 : x) + 'px';
+  ttBox.style.top  = (y + 120 > window.innerHeight ? e.clientY - 130 : y) + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (!e.target.closest('[data-tt]')) return;
+  ttBox.classList.remove('visible');
+});
 </script>
  <div id="tt-box"></div>
 </body>
