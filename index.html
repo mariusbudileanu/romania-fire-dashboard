@@ -492,6 +492,7 @@ footer a:hover{color:var(--accent2)}
           <option value="frp_max">FRP maxim (MW)</option>
           <option value="frp_sum">FRP total (MW)</option>
         </select>
+        <span id="metric-note" style="display:none;font-size:11px;color:#ff8c42;margin-left:6px;" title="Sliderul anual UAT este disponibil doar pentru Nr. detecții și FRP mediu">⚠ slider limitat</span>
       </div>
       <div class="fsep"></div>
       <div class="fgrp"><label>Timp</label>
@@ -1405,7 +1406,18 @@ function refreshMap(){
   else if(ALAYER==='uat')    buildUatLayer(m);
   buildRank();
 }
-function onMetricChange(){refreshMap();}
+function onMetricChange(){
+  updateMetricNote();
+  refreshMap();
+}
+
+function updateMetricNote(){
+  const metric=document.getElementById('m-metric').value;
+  const tmode=document.getElementById('m-time').value;
+  const layer=document.getElementById('m-layer')?.value||'';
+  const show=tmode==='year' && layer==='uat' && (metric==='frp_max'||metric==='frp_sum');
+  document.getElementById('metric-note').style.display=show?'inline':'none';
+}
 
 function setLayer(n){
   ALAYER=n;
@@ -1618,8 +1630,22 @@ function showCellInfo(r){
 function onTimeModeChange(){
   TMODE=document.getElementById('m-time').value;
   document.getElementById('slider-wrap').style.display=TMODE==='year'?'block':'none';
+  updateMetricNote();
   if(TMODE==='year')onSlider(+document.getElementById('yslider').value);
   else refreshMap();
+}
+
+function onMetricChange(){
+  updateMetricNote();
+  refreshMap();
+}
+
+function updateMetricNote(){
+  const metric=document.getElementById('m-metric').value;
+  const tmode=document.getElementById('m-time').value;
+  const layer=document.getElementById('m-layer')?.value||'';
+  const show=tmode==='year' && layer==='uat' && (metric==='frp_max'||metric==='frp_sum');
+  document.getElementById('metric-note').style.display=show?'inline':'none';
 }
 function onSlider(y){
   document.getElementById('syear').textContent=y;
