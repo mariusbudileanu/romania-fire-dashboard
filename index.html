@@ -1364,7 +1364,7 @@ function getJudetData(){
     const nm={};D.by_judet.forEach(j=>nm[j.JUDET_CODE]=j.JUDET_NAME);
     return D.judet_year.filter(r=>r.YEAR===y).map(r=>({
       JUDET_CODE:r.JUDET_CODE,JUDET_NAME:nm[r.JUDET_CODE]||r.JUDET_CODE,
-      count:r.count,frp_mean:r.frp_mean,frp_max:0,frp_sum:0
+      count:r.count,frp_mean:r.frp_mean,frp_max:r.frp_max||0,frp_sum:r.frp_sum||0
     }));
   }
   return D.by_judet;
@@ -1384,7 +1384,7 @@ function getUatDataFiltered(judCode){
       UAT_SIRUTA:r.UAT_SIRUTA,
       UAT_NAME:nm[r.UAT_SIRUTA]||r.UAT_SIRUTA,
       UAT_CC:r.UAT_CC||ccMap[r.UAT_SIRUTA]||'',
-      count:r.count,frp_mean:r.frp_mean,frp_max:0,frp_sum:0
+      count:r.count,frp_mean:r.frp_mean,frp_max:r.frp_max||0,frp_sum:r.frp_sum||0
     }));
   }
   return UAT_STATS.by_uat.filter(u=>!judCode||u.UAT_CC===judCode);
