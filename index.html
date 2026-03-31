@@ -1895,7 +1895,19 @@ const TOOLTIPS = {
   'NOAA-21':       '<strong>NOAA-21</strong>Cel mai nou satelit din rețea, lansat în 2022. Rezoluție 375 m.',
   'detecție':      '<strong>Detecție termică</strong>Nu este un incendiu confirmat — este un pixel cu temperatură anormal de ridicată detectat din satelit. Același foc poate genera mai multe detecții.',
   'detecții':      '<strong>Detecții termice</strong>Nu sunt incendii confirmate — sunt pixeli cu temperatură anormal de ridicată. Același foc poate apărea de mai multe ori (sateliți diferiți, treceri multiple).',
-  'FIRMS':         '<strong>FIRMS</strong>Fire Information for Resource Management System — sistemul NASA care procesează și distribuie datele de detecție a incendiilor în timp real.',
+  'FIRMS':             '<strong>FIRMS</strong>Fire Information for Resource Management System — sistemul NASA care procesează și distribuie datele de detecție a incendiilor în timp real.',
+  'total-detectii':    '<strong>Total detecții</strong>Numărul total de pixeli termici detectați din satelit în perioada și zona selectată. Nu reprezintă numărul de incendii — același foc poate genera zeci de detecții.',
+  'cel-mai-activ-an':  '<strong>Cel mai activ an</strong>Anul cu cele mai multe detecții termice în perioada și zona selectată.',
+  'detectii-nocturne': '<strong>Detecții nocturne</strong>Procentul detecțiilor înregistrate noaptea (01:30 și 13:30 ora locală pentru MODIS; 01:30 și 13:30 pentru VIIRS). Incendiile nocturne sunt adesea mai intense — FRP mai mare, fum mai puțin dispersat.',
+  'luna-de-varf':      '<strong>Luna de vârf</strong>Luna calendaristică cu cele mai multe detecții în perioada selectată. În România, vârful tipic e martie–aprilie (vegetație uscată) și iulie–august (secetă).',
+  'ev-anuala':         '<strong>Evoluție anuală</strong>Barele arată numărul de detecții per an, colorate pe satelit. Linia portocalie suprapusă arată FRP mediu anual (MW) — intensitatea tipică a incendiilor în acel an.',
+  'heatmap':           '<strong>Heatmap lunar</strong>Fiecare celulă = numărul de detecții într-o lună dintr-un an. Culoarea mai intensă = mai multe detecții. Util pentru a identifica pattern-uri sezoniere și anomalii.',
+  'dist-lunara':       '<strong>Distribuție lunară</strong>Agregarea tuturor detecțiilor pe luni calendaristice, indiferent de an. Arată sezonalitatea tipică a incendiilor în zona selectată.',
+  'sezonalitate':      '<strong>Sezonalitate — zile ale anului</strong>Fiecare punct reprezintă o decadă (~10 zile). Compară activitatea din perioada selectată cu media națională istorică. Util pentru a identifica dacă un an a fost atipic.',
+  'zi-noapte':         '<strong>Zi vs. Noapte</strong>Distribuția detecțiilor între trecerile diurne și nocturne ale sateliților. Sateliții trec de ~2 ori/zi — o trecere de zi, una de noapte.',
+  'dist-frp':          '<strong>Distribuție FRP</strong>Histograma energiei radiate (MW) pentru toate detecțiile. Majoritatea incendiilor sunt de intensitate mică (sub 50 MW). Valorile peste 200 MW indică incendii severe de vegetație.',
+  'dist-confidence':   '<strong>Distribuție Confidence & Brightness</strong>Confidence = încrederea algoritmului că detecția e un incendiu real (low/nominal/high). Brightness = temperatura pixelului în grade Kelvin (K) — un foc activ depășește de obicei 320K, incendiile severe pot atinge 500–800K. Valorile ridicate de brightness corelează cu FRP mare.',
+  'info-tooltip':      '<strong>Tooltipuri interactive</strong>Termenii tehnici subliniați cu portocaliu au explicații. Treci cu mouse-ul peste ei pentru definiții. Ultima actualizare a datelor: 31.03.2026.',
 };
 
 document.addEventListener('DOMContentLoaded', () => {
