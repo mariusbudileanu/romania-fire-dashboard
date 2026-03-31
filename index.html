@@ -274,9 +274,43 @@ footer a:hover{color:var(--accent2)}
     <span class="badge" id="badge-update" style="background:rgba(6,214,160,.1);border-color:rgba(6,214,160,.3);color:var(--green)">— —</span>
   </div>
 <div class="hinfo">
+    <button id="btn-despre" onclick="document.getElementById('modal-despre').style.display='flex'">Despre date</button>
     <span data-tt="info-tooltip" id="btn-info">ℹ️</span>
   </div>
 </header>
+
+<!-- Modal Despre date -->
+<div id="modal-despre" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99998;align-items:center;justify-content:center;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Despre date</h2>
+      <button class="modal-close" onclick="document.getElementById('modal-despre').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <h3>Ce sunt detecțiile termice?</h3>
+      <p>Datele provin din sistemul <strong>NASA FIRMS</strong> (Fire Information for Resource Management System). O detecție termică <strong>nu este un incendiu confirmat</strong> — este un pixel satelitar cu temperatură anormal de ridicată. Același incendiu poate genera zeci de detecții (sateliți diferiți, treceri multiple pe zi).</p>
+
+      <h3>Diferența dintre sateliți</h3>
+      <p><strong>MODIS</strong> (Terra & Aqua, din 2000) — rezoluție 1 km, cea mai lungă serie temporală disponibilă. Detectează incendii de intensitate medie și mare.</p>
+      <p><strong>VIIRS SNPP</strong> (din 2012), <strong>NOAA-20</strong> (din 2018), <strong>NOAA-21</strong> (din 2023) — rezoluție 375 m, detectează incendii mai mici. Acoperire de ~2 treceri/zi per satelit.</p>
+
+      <h3>De ce apare același foc de mai multe ori?</h3>
+      <p>Fiecare satelit face treceri independente. Un incendiu activ timp de 6 ore poate fi detectat de 3-4 sateliți diferiți, generând 10-30 de detecții pentru același eveniment.</p>
+
+      <h3>Limitele datelor</h3>
+      <p>Acoperirea nori sau fumul dens pot bloca detectarea. Incendiile de mică intensitate (sub ~8 MW) pot scăpa nedetectate, mai ales de MODIS. Datele din 2000-2011 provin exclusiv din MODIS.</p>
+
+      <h3>Ce este FRP?</h3>
+      <p><strong>Fire Radiative Power</strong> — energia radiată de foc, măsurată în megawați (MW). Un foc de vegetație uscată tipic: 10-50 MW. Un incendiu sever de pădure: peste 200 MW. Valorile extreme (500+ MW) sunt asociate cu incendii catastrofale.</p>
+
+      <h3>Ce este Brightness?</h3>
+      <p>Temperatura pixelului detectat, în grade Kelvin (K). Vegetație normală: ~300K. Foc activ: 320-500K. Incendii severe: peste 600K. Brightness corelează direct cu FRP — un pixel mai fierbinte înseamnă un foc mai intens.</p>
+
+      <h3>Ce este Confidence?</h3>
+      <p>Nivelul de încredere al algoritmului că detecția reprezintă un incendiu real: <strong>Low</strong> (posibil fals pozitiv), <strong>Nominal</strong> (detecție tipică), <strong>High</strong> (certitudine ridicată). Majoritatea detecțiilor sunt Nominal.</p>
+    </div>
+  </div>
+</div>
 
 <div class="tabs">
   <div class="tab active" id="tab-charts" onclick="switchTab('charts')">📊 Grafice</div>
@@ -575,7 +609,7 @@ footer a:hover{color:var(--accent2)}
     MODIS C6.1, VIIRS SNPP / NOAA-20 / NOAA-21 ·
     Limite administrative: <a href="https://geo-spatial.org" target="_blank">geo-spatial.org</a>
   </div>
-  <div class="footer-credit">Realizat de Marius Budileanu și Claude</div>
+  <div class="footer-credit"> Marius Budileanu 🤝 Claude</div>
 </footer>
 
 <script>
