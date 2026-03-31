@@ -1898,25 +1898,27 @@ const TOOLTIPS = {
   'FIRMS':         '<strong>FIRMS</strong>Fire Information for Resource Management System — sistemul NASA care procesează și distribuie datele de detecție a incendiilor în timp real.',
 };
 
-const ttBox = document.getElementById('tt-box');
-document.addEventListener('mouseover', e => {
-  const el = e.target.closest('[data-tt]');
-  if (!el) return;
-  const key = el.dataset.tt;
-  if (!TOOLTIPS[key]) return;
-  ttBox.innerHTML = TOOLTIPS[key];
-  ttBox.classList.add('visible');
-});
-document.addEventListener('mousemove', e => {
-  if (!ttBox.classList.contains('visible')) return;
-  const x = e.clientX + 14;
-  const y = e.clientY + 14;
-  ttBox.style.left = (x + 280 > window.innerWidth ? e.clientX - 294 : x) + 'px';
-  ttBox.style.top  = (y + 120 > window.innerHeight ? e.clientY - 130 : y) + 'px';
-});
-document.addEventListener('mouseout', e => {
-  if (!e.target.closest('[data-tt]')) return;
-  ttBox.classList.remove('visible');
+document.addEventListener('DOMContentLoaded', () => {
+  const ttBox = document.getElementById('tt-box');
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tt]');
+    if (!el) return;
+    const key = el.dataset.tt;
+    if (!TOOLTIPS[key]) return;
+    ttBox.innerHTML = TOOLTIPS[key];
+    ttBox.classList.add('visible');
+  });
+  document.addEventListener('mousemove', e => {
+    if (!ttBox.classList.contains('visible')) return;
+    const x = e.clientX + 14;
+    const y = e.clientY + 14;
+    ttBox.style.left = (x + 280 > window.innerWidth ? e.clientX - 294 : x) + 'px';
+    ttBox.style.top  = (y + 120 > window.innerHeight ? e.clientY - 130 : y) + 'px';
+  });
+  document.addEventListener('mouseout', e => {
+    if (!e.target.closest('[data-tt]')) return;
+    ttBox.classList.remove('visible');
+  });
 });
 </script>
  <div id="tt-box"></div>
