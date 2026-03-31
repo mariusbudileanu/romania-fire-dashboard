@@ -352,7 +352,7 @@ footer a:hover{color:var(--accent2)}
 
     <!-- Evoluție anuală -->
     <div class="card s2">
-      <div class="ctitle">Evoluție anuală</div>
+    <div class="ctitle"><span data-tt="ev-anuala">Evoluție anuală</span></div>
       <div class="csub" id="cy-sub">bare = detecții · linie = FRP mediu (MW)</div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('cy','evolutie_anuala')">↓ PNG</button></div>
       <canvas id="cy" height="80"></canvas>
@@ -367,21 +367,21 @@ footer a:hover{color:var(--accent2)}
 
     <!-- Heatmap lunar FULL WIDTH -->
     <div class="card s2">
-      <div class="ctitle">Heatmap lunar — detecții per an × lună</div>
+  <div class="ctitle"><span data-tt="heatmap">Heatmap lunar — detecții per an × lună</span></div>
       <div class="card-actions"><button class="btn-export" onclick="exportCanvas('chm','heatmap_lunar')">↓ PNG</button></div>
       <canvas id="chm"></canvas>
     </div>
 
     <!-- Distribuție lunară -->
     <div class="card">
-      <div class="ctitle" id="cm-title">Distribuție lunară</div>
+<div class="ctitle" id="cm-title"><span data-tt="dist-lunara">Distribuție lunară</span></div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('cm','distributie_lunara')">↓ PNG</button></div>
       <canvas id="cm" height="200"></canvas>
     </div>
 
     <!-- Sezonalitate -->
     <div class="card">
-      <div class="ctitle" id="csz-title">Sezonalitate — distribuție pe zile an</div>
+   <div class="ctitle" id="csz-title"><span data-tt="sezonalitate">Sezonalitate — distribuție pe zile an</span></div>
       <div class="csub">fiecare punct = o decadă (~10 zile) · comparație cu media națională</div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('csz','sezonalitate')">↓ PNG</button></div>
       <canvas id="csz" height="200"></canvas>
@@ -389,28 +389,28 @@ footer a:hover{color:var(--accent2)}
 
     <!-- Zi vs Noapte -->
     <div class="card">
-      <div class="ctitle">Zi vs Noapte</div>
+      <div class="ctitle"><span data-tt="zi-noapte">Zi vs Noapte</span></div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('cdn','zi_noapte')">↓ PNG</button></div>
       <canvas id="cdn" height="200"></canvas>
     </div>
 
     <!-- FRP Histogram -->
     <div class="card">
-      <div class="ctitle">Distribuție FRP (MW)</div>
+      <div class="ctitle"><span data-tt="dist-frp">Distribuție FRP (MW)</span></div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('cfrp','distributie_frp')">↓ PNG</button></div>
       <canvas id="cfrp" height="200"></canvas>
     </div>
 
     <!-- Confidence -->
     <div class="card">
-      <div class="ctitle">Distribuție confidence</div>
+      <div class="ctitle"><span data-tt="dist-confidence">Distribuție confidence</span></div>
       <div class="card-actions"><button class="btn-export" onclick="exportChart('cconf','confidence')">↓ PNG</button></div>
       <canvas id="cconf" height="200"></canvas>
     </div>
 
     <!-- Top 20 -->
     <div class="card s2">
-      <div class="ctitle">Top 20 detecții după FRP</div>
+      <div class="ctitle"><span data-tt="top-frp">Top 20 detecții după FRP</span></div>
       <div style="overflow-x:auto"><table class="tbl" id="ttbl"></table></div>
     </div>
 
@@ -1908,6 +1908,7 @@ const TOOLTIPS = {
   'dist-frp':          '<strong>Distribuție FRP</strong>Histograma energiei radiate (MW) pentru toate detecțiile. Majoritatea incendiilor sunt de intensitate mică (sub 50 MW). Valorile peste 200 MW indică incendii severe de vegetație.',
   'dist-confidence':   '<strong>Distribuție Confidence & Brightness</strong>Confidence = încrederea algoritmului că detecția e un incendiu real (low/nominal/high). Brightness = temperatura pixelului în grade Kelvin (K) — un foc activ depășește de obicei 320K, incendiile severe pot atinge 500–800K. Valorile ridicate de brightness corelează cu FRP mare.',
   'info-tooltip':      '<strong>Tooltipuri interactive</strong>Termenii tehnici subliniați cu portocaliu au explicații. Treci cu mouse-ul peste ei pentru definiții. Ultima actualizare a datelor: 31.03.2026.',
+  'top-frp': '<strong>Top 20 detecții după FRP</strong>Cele mai intense detecții termice înregistrate, sortate după Fire Radiative Power (MW). Coloana Brightness arată temperatura pixelului în grade Kelvin (K) — valorile peste 400K indică incendii severe, peste 600K sunt excepționale și asociate cu incendii de pădure majore.',
 };
 
 document.addEventListener('DOMContentLoaded', () => {
