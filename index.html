@@ -1070,8 +1070,8 @@ function buildHeatmap() {
   lg.addColorStop(0,'#1a2540');lg.addColorStop(.35,'#ff4d1c');lg.addColorStop(.65,'#ff8c42');lg.addColorStop(1,'#ffd166');
   ctx.fillStyle=lg; ctx.beginPath(); ctx.roundRect(PL,cvs.height-14,lgW,7,3); ctx.fill();
   ctx.font='11px Segoe UI'; ctx.fillStyle='#7a8fad';
-  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height+10);
-  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height+10);
+  ctx.textAlign='left'; ctx.fillText('0',PL,cvs.height-3);
+  ctx.textAlign='right'; ctx.fillText(mx.toLocaleString('ro-RO'),PL+lgW,cvs.height-3);
   const mtt=document.getElementById('mtt');
   cvs.onmousemove=e=>{
     const r=cvs.getBoundingClientRect();
