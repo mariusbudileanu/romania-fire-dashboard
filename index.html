@@ -2051,6 +2051,62 @@ function buildMapTitle(){
   if(SEL_JUD2) title+=' + '+(JUD_NAMES[SEL_JUD2]||SEL_JUD2);
   return title;
 }
+  function exportMap(){
+  const title=buildMapTitle();
+  leafletImage(MAP, function(err, canvas){
+    if(err){ alert('Eroare captură hartă: '+err); return; }
+    const PAD=16, TITLE_H=50, LEG_H=40;
+    const W=canvas.width, H=canvas.height;
+    const out=document.createElement('canvas');
+    out.width=W; out.height=H+TITLE_H;
+    const ctx=out.getContext('2d');
+
+    // Fundal
+    ctx.fillStyle='#0d1117';
+    ctx.fillRect(0,0,out.width,out.height);
+
+    // Titlu
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 18px Segoe UI, sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('România Fire Watch',PAD,28);
+    ctx.fillStyle='#ff6b35';
+    ctx.font='14px Segoe UI, sans-serif';
+    ctx.fillText(title,PAD,46);
+
+    // Harta
+    ctx.drawImage(canvas,0,TITLE_H);
+
+    // Watermark dreapta jos
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.font='11px Segoe UI, sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText('NASA FIRMS · românia-fire-watch',W-PAD,out.height-PAD);
+
+    // Legendă stânga jos — bara de culori
+    const lgW=200, lgH=8;
+    const lgX=PAD, lgY=out.height-PAD-lgH-14;
+    const lg=ctx.createLinearGradient(lgX,0,lgX+lgW,0);
+    lg.addColorStop(0,'#1a2540');
+    lg.addColorStop(0.35,'#ff4d1c');
+    lg.addColorStop(0.65,'#ff8c42');
+    lg.addColorStop(1,'#ffd166');
+    ctx.fillStyle=lg;
+    ctx.beginPath(); ctx.roundRect(lgX,lgY,lgW,lgH,3); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.font='10px Segoe UI';
+    ctx.textAlign='left';
+    ctx.fillText('Minim',lgX,out.height-PAD);
+    ctx.textAlign='right';
+    ctx.fillText('Maxim',lgX+lgW,out.height-PAD);
+
+    // Download
+    const a=document.createElement('a');
+    a.download='romania_fire_watch_'+title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.png';
+    a.href=out.toDataURL('image/png');
+    a.click();
+  });
+}
 </script>
  <div id="tt-box"></div>
 </body>
