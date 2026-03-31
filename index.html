@@ -227,6 +227,29 @@ footer a:hover{color:var(--accent2)}
   background:linear-gradient(90deg,#1a4040,#06d6a0,#ffd166,#ff8c42,#ff4d1c)}
 @media(max-width:900px){.live-grid{grid-template-columns:1fr}#live-map{height:360px}}
 
+  /* ── Tooltip sistem ── */
+.tt {
+  border-bottom: 1px dashed rgba(255,107,53,0.6);
+  cursor: help;
+}
+#tt-box {
+  position: fixed;
+  background: #12122a;
+  border: 1px solid #ff6b35;
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ccc;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#tt-box.visible { opacity: 1; }
+#tt-box strong { color: #ff6b35; display: block; margin-bottom: 3px; }
+
 </style>
 <script>document.write('<script src="fires_data.js?v='+Date.now()+'"><\/script>');</script>
 <script>document.write('<script src="recent_fires.js?v='+Date.now()+'" onerror="console.warn(\'recent_fires.js not found\')"><\/script>');</script>
