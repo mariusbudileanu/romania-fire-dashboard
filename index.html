@@ -1050,7 +1050,7 @@ function buildHeatmap() {
   const cW=Math.max(10,(W-PL-PR)/12-6);
   const nY=ys.length;
     const cH=Math.max(12,Math.min(22,(Math.max(200,nY*16)-PT-PB)/nY));
-  cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+20;
+  cvs.width=W; cvs.height=PT+nY*(cH+2)+PB+35;
   ctx.clearRect(0,0,cvs.width,cvs.height);
   ctx.font='12px Segoe UI,sans-serif'; ctx.fillStyle='#7a8fad'; ctx.textAlign='center';
   MONTHS.forEach((m,i)=>ctx.fillText(m,PL+i*(cW+2)+cW/2,PT-4));
