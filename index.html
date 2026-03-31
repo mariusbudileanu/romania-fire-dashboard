@@ -1373,10 +1373,19 @@ function getUatDataFiltered(judCode){
   if(!UAT_STATS) return [];
   if(TMODE==='year'){
     const y=+document.getElementById('yslider').value;
-    const rows=UAT_STATS.uat_year.filter(r=>r.YEAR===y&&(!judCode||r.UAT_CC===judCode));
+    // lookup UAT_CC din by_uat dacă lipsește în uat_year
+    const ccMap={};UAT_STATS.by_uat.forEach(u=>ccMap[u.UAT_SIRUTA]=u.UAT_CC);
     const nm={};UAT_STATS.by_uat.forEach(u=>nm[u.UAT_SIRUTA]=u.UAT_NAME);
-    return rows.map(r=>({UAT_SIRUTA:r.UAT_SIRUTA,UAT_NAME:nm[r.UAT_SIRUTA]||r.UAT_SIRUTA,
-      UAT_CC:r.UAT_CC,count:r.count,frp_mean:r.frp_mean,frp_max:0,frp_sum:0}));
+    const rows=UAT_STATS.uat_year.filter(r=>{
+      const cc=r.UAT_CC||ccMap[r.UAT_SIRUTA]||'';
+      return r.YEAR===y&&(!judCode||cc===judCode);
+    });
+    return rows.map(r=>({
+      UAT_SIRUTA:r.UAT_SIRUTA,
+      UAT_NAME:nm[r.UAT_SIRUTA]||r.UAT_SIRUTA,
+      UAT_CC:r.UAT_CC||ccMap[r.UAT_SIRUTA]||'',
+      count:r.count,frp_mean:r.frp_mean,frp_max:0,frp_sum:0
+    }));
   }
   return UAT_STATS.by_uat.filter(u=>!judCode||u.UAT_CC===judCode);
 }
