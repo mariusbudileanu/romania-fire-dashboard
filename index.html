@@ -1414,8 +1414,7 @@ function onMetricChange(){
 function updateMetricNote(){
   const metric=document.getElementById('m-metric').value;
   const tmode=document.getElementById('m-time').value;
-  const layer=document.getElementById('m-layer')?.value||'';
-  const show=tmode==='year' && layer==='uat' && (metric==='frp_max'||metric==='frp_sum');
+  const show=tmode==='year' && ALAYER==='uat' && (metric==='frp_max'||metric==='frp_sum');
   document.getElementById('metric-note').style.display=show?'inline':'none';
 }
 
@@ -1640,13 +1639,6 @@ function onMetricChange(){
   refreshMap();
 }
 
-function updateMetricNote(){
-  const metric=document.getElementById('m-metric').value;
-  const tmode=document.getElementById('m-time').value;
-  const layer=document.getElementById('m-layer')?.value||'';
-  const show=tmode==='year' && layer==='uat' && (metric==='frp_max'||metric==='frp_sum');
-  document.getElementById('metric-note').style.display=show?'inline':'none';
-}
 function onSlider(y){
   document.getElementById('syear').textContent=y;
   const cnt=D.judet_year.filter(r=>r.YEAR===y).reduce((s,r)=>s+r.count,0);
