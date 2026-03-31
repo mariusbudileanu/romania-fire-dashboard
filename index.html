@@ -2035,6 +2035,22 @@ document.addEventListener('DOMContentLoaded', () => {
     ttBox.classList.remove('visible');
   });
 });
+  // ── Export hartă ──
+function buildMapTitle(){
+  const layers={'heat':'Heatmap densitate','grid':'Grilă FRP','choro':'Județe','points':'Puncte termice','uat':'UAT-uri'};
+  const metrics={'count':'Nr. detecții','frp_mean':'FRP mediu','frp_max':'FRP maxim','frp_sum':'FRP total'};
+  let title=layers[ALAYER]||ALAYER;
+  if((ALAYER==='choro'||ALAYER==='uat')&&document.getElementById('m-metric')){
+    title+=' · '+metrics[document.getElementById('m-metric').value]||'';
+  }
+  const period=TMODE==='year'
+    ? document.getElementById('yslider').value
+    : `${F.yf}–${F.yt}`;
+  title+=' · '+period;
+  if(SEL_JUD1) title+=' · '+(JUD_NAMES[SEL_JUD1]||SEL_JUD1);
+  if(SEL_JUD2) title+=' + '+(JUD_NAMES[SEL_JUD2]||SEL_JUD2);
+  return title;
+}
 </script>
  <div id="tt-box"></div>
 </body>
