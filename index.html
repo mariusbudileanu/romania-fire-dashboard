@@ -1159,14 +1159,32 @@ function buildFRPChart() {
 // CHART: CONFIDENCE
 // ═══════════════════════════════════════════════════════
 function buildConfChart() {
-  const bins=D.conf_dist.map(r=>r.bin),cnts=D.conf_dist.map(r=>r.count);
-  if(CC.conf)CC.conf.destroy();
-  CC.conf=new Chart(document.getElementById('cconf'),{type:'bar',
-    data:{labels:bins,datasets:[{label:'Detecții',data:cnts,
-      backgroundColor:['rgba(226,75,74,.6)','rgba(255,140,66,.65)','rgba(255,209,102,.65)','rgba(6,214,160,.6)','rgba(76,201,240,.65)'],
-      borderColor:['#e24b4a','#ff8c42','#ffd166','#06d6a0','#4cc9f0'],borderWidth:1,borderRadius:3}]},
-    options:{responsive:true,plugins:{legend:{display:false}},
-      scales:{x:{grid:{color:GC}},y:{grid:{color:GC},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
+  const CONF_LABELS = { 'h': 'High', 'n': 'Nominal', 'l': 'Low' };
+  const bins = D.conf_dist.map(r => CONF_LABELS[r.conf] || r.conf);
+  const cnts = D.conf_dist.map(r => r.count);
+  if(CC.conf) CC.conf.destroy();
+  CC.conf = new Chart(document.getElementById('cconf'), {
+    type: 'bar',
+    data: {
+      labels: bins,
+      datasets: [{
+        label: 'Detecții',
+        data: cnts,
+        backgroundColor: ['rgba(6,214,160,.6)', 'rgba(255,140,66,.65)', 'rgba(226,75,74,.6)'],
+        borderColor: ['#06d6a0', '#ff8c42', '#e24b4a'],
+        borderWidth: 1,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: GC } },
+        y: { grid: { color: GC }, ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+      }
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════
