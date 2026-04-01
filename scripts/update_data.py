@@ -319,38 +319,18 @@ fires['frp_year']    = sorted(fy_map.values(), key=lambda x: x['year'])
 fires['top_frp']     = sorted(fires['top_frp'],
                               key=lambda x: x['FRP'], reverse=True)[:20]
 
-# ── Actualizare judete_timeseries ─────────────────────────────────────────────
-jy_map  = {(r['JUDET_CODE'],r['YEAR']): r for r in jt['by_jud_year']}
-jt_tot  = {j['JUDET_CODE']: j for j in jt['by_judet_total']}
-jm_map  = {(r['JUDET_CODE'],r['MONTH']): r for r in jt.get('by_jud_month',[])}
+# ── Reconstruire judete_timeseries din fires_data ─────────────────────────────
+# by_jud_year și by_judet_total — sursă unică: fires_data.json
+jt['by_jud_year']    = sorted(fires.get('judet_year',[]),
+                               key=lambda x: (x['JUDET_CODE'], x['YEAR']))
+jt['by_judet_total'] = fires.get('by_judet',[])
 
+# by_jud_month — păstrat incremental (nu există în fires_data)
+jm_map = {(r['JUDET_CODE'],r['MONTH']): r for r in jt.get('by_jud_month',[])}
 for r in unique_new:
-    y    = int(r['date'][:4]); m = int(r['date'][5:7])
+    m    = int(r['date'][5:7])
     code = r.get('judet_code')
     if not code: continue
-
-    jname = next((j['JUDET_NAME'] for j in jt['by_judet_total']
-                  if j['JUDET_CODE']==code), code)
-
-    k = (code, y)
-    if k in jy_map:
-        old = jy_map[k]; n = old['count']
-        old['frp_mean'] = round((old['frp_mean']*n + r['frp'])/(n+1), 2)
-        old['frp_max']  = round(max(old['frp_max'], r['frp']), 1)
-        old['frp_sum']  = round(old['frp_sum'] + r['frp'], 1)
-        old['count']    = n + 1
-    else:
-        jy_map[k] = {'JUDET_CODE':code,'JUDET_NAME':jname,'YEAR':y,
-                     'count':1,'frp_mean':round(r['frp'],2),
-                     'frp_max':round(r['frp'],1),'frp_sum':round(r['frp'],1)}
-
-    if code in jt_tot:
-        old = jt_tot[code]; n = old['count']
-        old['frp_mean'] = round((old['frp_mean']*n + r['frp'])/(n+1), 2)
-        old['frp_max']  = round(max(old['frp_max'], r['frp']), 1)
-        old['frp_sum']  = round(old['frp_sum'] + r['frp'], 1)
-        old['count']    = n + 1
-
     km = (code, m)
     if km in jm_map:
         old = jm_map[km]; n = old['count']
@@ -359,10 +339,6 @@ for r in unique_new:
     else:
         jm_map[km] = {'JUDET_CODE':code,'MONTH':m,
                       'count':1,'frp_mean':round(r['frp'],2)}
-
-jt['by_jud_year']    = sorted(jy_map.values(),
-                               key=lambda x: (x['JUDET_CODE'], x['YEAR']))
-jt['by_judet_total'] = list(jt_tot.values())
 jt['by_jud_month']   = sorted(jm_map.values(),
                                key=lambda x: (x['JUDET_CODE'], x['MONTH']))
 jt['national_stats']['total_count'] = fires['kpis']['total']
