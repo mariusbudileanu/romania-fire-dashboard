@@ -644,9 +644,9 @@ const MUNITS = {count:' det',frp_mean:' MW',frp_max:' MW',frp_sum:' MW'};
 const JUD_COLORS = ['#4cc9f0','#ffd166'];  // județ1=albastru, județ2=auriu
 
 // Pregătim lookup rapid per județ
-const JUD_LIST = [...new Set(JT.by_judet_total.map(j=>j.JUDET_CODE))].sort();
+const JUD_LIST = [...new Set(__FIRES__.by_judet.map(j=>j.JUDET_CODE))].sort();
 const JUD_NAMES = {};
-JT.by_judet_total.forEach(j => JUD_NAMES[j.JUDET_CODE] = j.JUDET_NAME);
+__FIRES__.by_judet.forEach(j => JUD_NAMES[j.JUDET_CODE] = j.JUDET_NAME);
 
 // ═══════════════════════════════════════════════════════
 // UAT DATA (lazy)
@@ -798,7 +798,7 @@ function srcTotal(r) {
 
 // Returnează seria anuală per județ (filtrată pe interval ani)
 function getJudYearSeries(code) {
-  const src = (window.__JT__ && window.__JT__.by_jud_year) || JT.by_jud_year;
+  const src = __FIRES__.judet_year;
   return src
     .filter(r=>r.JUDET_CODE===code&&r.YEAR>=F.yf&&r.YEAR<=F.yt)
 }
@@ -810,7 +810,7 @@ function getJudMonthSeries(code) {
 
 // Returnează heatmap per județ
 function getJudHeatmap(code) {
-  return JT.by_jud_year_month.filter(r=>r.JUDET_CODE===code&&r.YEAR>=F.yf&&r.YEAR<=F.yt);
+  return (__FIRES__.judet_year_month||[]).filter(r=>r.JUDET_CODE===code&&r.YEAR>=F.yf&&r.YEAR<=F.yt);
 }
 
 // Returnează DOY per județ
@@ -843,7 +843,7 @@ if(SEL_JUD1 && SEL_JUD2) {
     total=series1.reduce((s,r)=>s+r.count,0)+series2.reduce((s,r)=>s+r.count,0);
     const years=[...new Set([...series1,...series2].map(r=>r.YEAR))];
     const pk=years.map(y=>({y,c:(series1.find(r=>r.YEAR===y)?.count||0)+(series2.find(r=>r.YEAR===y)?.count||0)})).reduce((a,b)=>b.c>a.c?b:a,{y:'—',c:0});
-    peak=pk.y; fmax=Math.max(JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD1)?.frp_max||0,JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD2)?.frp_max||0);
+    peak=pk.y; fmax=Math.max(__FIRES__.by_judet.find(j=>j.JUDET_CODE===SEL_JUD1)?.frp_max||0,__FIRES__.by_judet.find(j=>j.JUDET_CODE===SEL_JUD2)?.frp_max||0);
     fmed='—'; np='—';
     const mA=Array(12).fill(0);
     getJudMonthSeries(SEL_JUD1).forEach(r=>mA[r.MONTH-1]+=r.count);
@@ -855,7 +855,7 @@ if(SEL_JUD1 && SEL_JUD2) {
     total=series.reduce((s,r)=>s+r.count,0);
     const pkRow=series.reduce((a,b)=>b.count>a.count?b:a,{YEAR:'—',count:0});
     peak=pkRow.YEAR; fmax=Math.max(...series.map(r=>r.frp_max),0);
-    fmed=JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD1)?.frp_mean||'—';
+    fmed=__FIRES__.by_judet.find(j=>j.JUDET_CODE===SEL_JUD1)?.frp_mean||'—';
     np='—'; // nu avem zi/noapte per județ
     const mSeries=getJudMonthSeries(SEL_JUD1);
     const pkM=mSeries.reduce((a,b)=>b.count>a.count?b:a,{MONTH:1,count:0});
@@ -907,10 +907,10 @@ function updateJudetStats() {
   if(!SEL_JUD1||SEL_JUD2){panel.style.display='none';return;}
   panel.style.display='block';
 
-  const judTotal = (window.__JT__ && window.__JT__.by_judet_total) || JT.by_judet_total;
+  const judTotal = __FIRES__.by_judet;
   if(!jRow) return;
 
-  const ns=JT.national_stats;
+  const ns=JT.national_stats||{mean_count:0,mean_frp_mean:0,mean_frp_max:0,mean_frp_sum:0};
   document.getElementById('jud-stats-title').textContent=JUD_NAMES[SEL_JUD1]+' — statistici vs. media națională';
 
   // Trend
@@ -968,7 +968,7 @@ function buildYearChart() {
 
   if(SEL_JUD1) {
     // Mod județ — linie(i) în loc de bare stacked
-    const ys=[...new Set(JT.by_jud_year.map(r=>r.YEAR))].filter(y=>y>=F.yf&&y<=F.yt).sort();
+    const ys=[...new Set(__FIRES__.judet_year.map(r=>r.YEAR))].filter(y=>y>=F.yf&&y<=F.yt).sort();
     const ds=[];
     [SEL_JUD1,SEL_JUD2].filter(Boolean).forEach((code,ci)=>{
       const series=getJudYearSeries(code);
