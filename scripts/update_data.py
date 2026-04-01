@@ -200,6 +200,8 @@ def save_all(new_pts):
         f.write('window.__FIRES__='+json.dumps(fires, separators=(',',':'))+';')
     with open('judete_timeseries.json','w') as f:
         json.dump(jt, f, separators=(',',':'))
+    with open('judete_timeseries.js','w') as f:
+        f.write('window.__JT__='+json.dumps(jt, separators=(',',':'))+';')
     with open('uat_stats.json','w') as f:
         json.dump(uat_stats, f, separators=(',',':'))
 
