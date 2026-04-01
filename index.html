@@ -968,7 +968,7 @@ function buildYearChart() {
 
   if(SEL_JUD1) {
     // Mod județ — linie(i) în loc de bare stacked
-    const ys=[...new Set(__FIRES__.judet_year.map(r=>r.YEAR))].filter(y=>y>=F.yf&&y<=F.yt).sort();
+    const ys=[...new Set(getJudYearSeries(SEL_JUD1).map(r=>r.YEAR))].filter(y=>y>=F.yf&&y<=F.yt).sort();
     const ds=[];
     [SEL_JUD1,SEL_JUD2].filter(Boolean).forEach((code,ci)=>{
       const series=getJudYearSeries(code);
