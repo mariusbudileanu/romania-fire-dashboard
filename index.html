@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2052,9 +2052,8 @@ function buildMapTitle(){
   return title;
 }
   function exportMap(){
-  const title=buildMapTitle();
-  leafletImage(MAP, function(err, canvas){
-    if(err){ alert('Eroare captură hartă: '+err); return; }
+  const mapEl=document.getElementById('map');
+  html2canvas(mapEl,{useCORS:true,allowTaint:true,logging:false}).then(canvas=>{
     const PAD=16, TITLE_H=50, LEG_H=40;
     const W=canvas.width, H=canvas.height;
     const out=document.createElement('canvas');
