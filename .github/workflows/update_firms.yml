@@ -35,7 +35,7 @@ jobs:
         env:
           FIRMS_API_KEY: ${{ secrets.FIRMS_API_KEY }}
         run: python scripts/update_data.py
-- name: Check for changes
+      - name: Check for changes
         id: changes
         run: |
           git diff --quiet fires_data.json fires_data.js judete_timeseries.json judete_timeseries.js recent_fires.js uat_stats.json \
