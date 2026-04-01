@@ -245,8 +245,15 @@ def save_all(new_pts):
 
 # ── Dacă nu avem date noi ─────────────────────────────────────────────────────
 if not unique_new:
-    print('\nNimic nou — actualizez timestamp.')
+    print('\nNimic nou — actualizez timestamp și reconstruiesc judete_timeseries.')
     fires['kpis']['last_update'] = today.strftime('%Y-%m-%d')
+    jt['by_jud_year']    = sorted(fires.get('judet_year',[]),
+                                   key=lambda x: (x['JUDET_CODE'], x['YEAR']))
+    jt['by_judet_total'] = fires.get('by_judet',[])
+    jt['national_stats']['total_count'] = fires['kpis']['total']
+    jt['national_stats']['mean_count']  = round(
+        sum(j['count'] for j in jt['by_judet_total'])
+        / max(len(jt['by_judet_total']),1), 1)
     save_all([])
     print(f'[{datetime.now(timezone.utc).isoformat()}] Done — 0 înregistrări noi')
     sys.exit(0)
