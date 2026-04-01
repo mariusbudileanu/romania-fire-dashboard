@@ -798,9 +798,9 @@ function srcTotal(r) {
 
 // Returnează seria anuală per județ (filtrată pe interval ani)
 function getJudYearSeries(code) {
-  return JT.by_jud_year
+  const src = (window.__JT__ && window.__JT__.by_jud_year) || JT.by_jud_year;
+  return src
     .filter(r=>r.JUDET_CODE===code&&r.YEAR>=F.yf&&r.YEAR<=F.yt)
-    .sort((a,b)=>a.YEAR-b.YEAR);
 }
 
 // Returnează seria lunară per județ
@@ -907,7 +907,7 @@ function updateJudetStats() {
   if(!SEL_JUD1||SEL_JUD2){panel.style.display='none';return;}
   panel.style.display='block';
 
-  const jRow=JT.by_judet_total.find(j=>j.JUDET_CODE===SEL_JUD1);
+  const judTotal = (window.__JT__ && window.__JT__.by_judet_total) || JT.by_judet_total;
   if(!jRow) return;
 
   const ns=JT.national_stats;
