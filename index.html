@@ -708,6 +708,7 @@ const GC='rgba(76,201,240,0.07)';
 // ═══════════════════════════════════════════════════════
 let F={yf:2000,yt:2026,src:'ALL',dn:'ALL'};
 let SEL_JUD1='', SEL_JUD2='', SEL_UAT='';
+let LIVE_MAP = null, LIVE_LAYER = null, LIVE_INITED = false;
 
 function initSelects() {
   const ys=[...new Set(D.by_year_src.map(r=>r.YEAR))].sort();
@@ -1695,9 +1696,6 @@ window.addEventListener('resize',()=>setTimeout(buildHeatmap,100));
 // ═══════════════════════════════════════════════════════
 // TAB LIVE — DETECȚII RECENTE
 // ═══════════════════════════════════════════════════════
-let LIVE_MAP = null, LIVE_LAYER = null;
-let LIVE_INITED = false;
-
 // Data curentă în format YYYY-MM-DD
 function todayStr() {
   return new Date().toISOString().slice(0,10);
