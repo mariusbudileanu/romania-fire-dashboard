@@ -1342,7 +1342,7 @@ let HLAYER,GLAYER,CLAYER,PLAYER,UALAYER;
 let ALAYER='heat', TMODE='all', PLAYIV=null;
 
 function initMap() {
-  MAP=L.map('map',{center:[45.9,25.0],zoom:7,attributionControl:false});
+  function initMap() {MAP = L.map('map', {center: [45.0, 25.0], zoom: 7, attributionControl: false,preferCanvas: true });
 
   DARK_TILES=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     {subdomains:'abcd',maxZoom:18});
@@ -2042,67 +2042,53 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Export hartă ──
 function exportMap() {
     const mapContainer = document.getElementById('map');
-    // Verificăm dacă există containerul hărții înainte de a continua
-    if (!mapContainer) {
-        console.error("Containerul hărții nu a fost găsit (#map)!");
-        alert("Eroare la export: harta nu a putut fi găsită.");
-        return;
-    }
+    if (!mapContainer) return;
     
     const title = (typeof buildMapTitle === 'function') ? buildMapTitle() : "România Fire Watch";
     const btn = document.querySelector('button[onclick="exportMap()"]');
     const oldHtml = btn ? btn.innerHTML : "↓ PNG hartă";
     if (btn) btn.innerHTML = "⏳ Se generează...";
 
-    html2canvas(mapContainer, {
-        useCORS: true, 
-        allowTaint: false,
-        backgroundColor: '#0a0e17' // Fundal închis ca în dashboard
-    }).then(canvas => {
-        const out = document.createElement('canvas');
-        const PAD = 16, HEADER_H = 70;
-        
-        // Calculăm lățimea finală: cea mai mare dintre lățimea hărții și o lățime minimă pentru antet
-        // Acest lucru previne trunchierea antetului dacă harta este foarte îngustă.
-        const headerTitleWidth = 250; // O lățime estimativă pentru textul "România Fire Watch" + padding
-        const finalWidth = Math.max(canvas.width, headerTitleWidth + PAD * 2);
+    // Așteptăm 800ms să ne asigurăm că orice animație Leaflet sau de slider s-a terminat
+    setTimeout(() => {
+        html2canvas(mapContainer, {
+            useCORS: true, 
+            allowTaint: false,
+            backgroundColor: '#0a0e17'
+        }).then(canvas => {
+            const out = document.createElement('canvas');
+            const PAD = 16, HEADER_H = 70;
+            
+            // Calculăm lățimea ca să nu taie titlul pe ecrane mici
+            const finalWidth = Math.max(canvas.width, 350);
+            out.width = finalWidth;
+            out.height = canvas.height + HEADER_H;
+            const ctx = out.getContext('2d');
 
-        out.width = finalWidth;
-        out.height = canvas.height + HEADER_H;
-        const ctx = out.getContext('2d');
+            // Desenăm fundalul și textul
+            ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, out.width, out.height);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px Segoe UI, sans-serif'; 
+            ctx.fillText('România Fire Watch', PAD, 30);
+            ctx.fillStyle = '#ff6b35'; ctx.font = '14px Segoe UI, sans-serif'; 
+            ctx.fillText(title, PAD, 55);
 
-        // Fundal antet (decorativ)
-        ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, out.width, out.height);
-        
-        // Titlu Principal
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px Segoe UI, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('România Fire Watch', PAD, 30);
-        
-        // Subtitlu (metrică și perioadă)
-        ctx.fillStyle = '#ff6b35'; ctx.font = '14px Segoe UI, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(title, PAD, 55);
+            // Centrarea precisă a hărții pe canvas-ul final
+            const leftOffset = (out.width - canvas.width) / 2;
+            ctx.drawImage(canvas, leftOffset, HEADER_H);
 
-        // --- REPARAȚIA PENTRU CENTRARE ---
-        // Calculăm offset-ul orizontal pentru a centra harta pe canvas-ul final
-        const leftOffset = (out.width - canvas.width) / 2;
-        
-        // Desenăm harta centrată orizontal, la poziția calculată.
-        // Parametrii sunt: drawImage(imagine, x_destinație, y_destinație)
-        ctx.drawImage(canvas, leftOffset, HEADER_H);
-        // ---------------------------------
-
-        const a = document.createElement('a');
-        const safeTitle = title.replace(/[^a-z0-9\s]/gi, '').replace(/\s+/g, '_').toLowerCase();
-        a.download = `FireWatch_Map_${new Date().toISOString().slice(0,10)}_${safeTitle}.png`;
-        a.href = out.toDataURL('image/png');
-        a.click();
-        
-        if (btn) btn.innerHTML = oldHtml;
-    }).catch(err => {
-        console.error("Eroare export:", err);
-        if (btn) btn.innerHTML = "⚠ Eroare";
-        alert("A apărut o eroare la generarea imaginii. Verifică consola (F12) pentru detalii.");
-    });
+            // Descărcarea
+            const a = document.createElement('a');
+            const safeTitle = title.replace(/[^a-z0-9\s]/gi, '').replace(/\s+/g, '_').toLowerCase();
+            a.download = `FireWatch_${safeTitle}.png`;
+            a.href = out.toDataURL('image/png');
+            a.click();
+            
+            if (btn) btn.innerHTML = oldHtml;
+        }).catch(err => {
+            console.error("Eroare export:", err);
+            if (btn) btn.innerHTML = "⚠ Eroare";
+        });
+    }, 800); // 800 milisecunde buffer pentru randare
 }
 </script>
  <div id="tt-box"></div>
