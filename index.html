@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -903,11 +903,12 @@ document.getElementById('fstatus').textContent=total.toLocaleString('ro-RO')+
 // PANOU STATISTICI JUDEȚ
 // ═══════════════════════════════════════════════════════
 function updateJudetStats() {
-  const panel=document.getElementById('jud-stats');
-  if(!SEL_JUD1||SEL_JUD2){panel.style.display='none';return;}
-  panel.style.display='block';
+  const panel = document.getElementById('jud-stats');
+  if(!SEL_JUD1 || SEL_JUD2) { panel.style.display='none'; return; }
+  panel.style.display = 'block';
 
-  const judTotal = __FIRES__.by_judet;
+  // LINIA ADĂUGATĂ PENTRU REPARAȚIE:
+  const jRow = __FIRES__.by_judet.find(j => j.JUDET_CODE === SEL_JUD1);
   if(!jRow) return;
 
   const ns=JT.national_stats||{mean_count:0,mean_frp_mean:0,mean_frp_max:0,mean_frp_sum:0};
@@ -966,18 +967,21 @@ function buildYearChart() {
   const subEl=document.getElementById('cy-sub');
   const legEl=document.getElementById('cy-leg');
 
-  if(SEL_JUD1) {
-    // Mod județ — linie(i) în loc de bare stacked
-    const ys=[...new Set(getJudYearSeries(SEL_JUD1).map(r=>r.YEAR))].filter(y=>y>=F.yf&&y<=F.yt).sort();
-    const ds=[];
-    [SEL_JUD1,SEL_JUD2].filter(Boolean).forEach((code,ci)=>{
-      const series=getJudYearSeries(code);
-      const byYear={}; series.forEach(r=>byYear[r.YEAR]=r.count);
+if(SEL_JUD1) {
+    // REPARAȚIE: Forțăm axa X să fie completă pentru toți anii din filtru
+    const ys = []; for(let y = F.yf; y <= F.yt; y++) ys.push(y);
+    const ds = [];
+
+    [SEL_JUD1, SEL_JUD2].filter(Boolean).forEach((code, ci) => {
+      // REPARAȚIE: Filtrăm datele DOAR pentru județul selectat din sursa principală
+      const series = __FIRES__.judet_year.filter(r => r.JUDET_CODE === code);
+      const byYear = {}; series.forEach(r => byYear[r.YEAR] = r.count);
+
       ds.push({
-        label:JUD_NAMES[code],
-        data:ys.map(y=>byYear[y]||0),
-        borderColor:JUD_COLORS[ci],backgroundColor:JUD_COLORS[ci]+'33',
-        borderWidth:2,pointRadius:3,tension:.3,fill:false,order:1,
+        label: JUD_NAMES[code],
+        data: ys.map(y => byYear[y] || 0),
+        borderColor: JUD_COLORS[ci], backgroundColor: JUD_COLORS[ci]+'33',
+        borderWidth: 2, pointRadius: 3, tension: .3, fill: false, order: 1
       });
       // Linie trend
       const xs=series.map(r=>r.YEAR), cnts=series.map(r=>r.count);
@@ -2051,61 +2055,37 @@ function buildMapTitle(){
   if(SEL_JUD2) title+=' + '+(JUD_NAMES[SEL_JUD2]||SEL_JUD2);
   return title;
 }
-  function exportMap(){
-  const title=buildMapTitle();
-  leafletImage(MAP, function(err, canvas){
-    if(err){ alert('Eroare captură hartă: '+err); return; }
-    const PAD=16, TITLE_H=50, LEG_H=40;
-    const W=canvas.width, H=canvas.height;
-    const out=document.createElement('canvas');
-    out.width=W; out.height=H+TITLE_H;
-    const ctx=out.getContext('2d');
+function exportMap() {
+    const mapContainer = document.getElementById('map');
+    const title = buildMapTitle();
+    
+    html2canvas(mapContainer, {
+        useCORS: true,       // Permite capturarea hărții și a UAT-urilor
+        allowTaint: false,
+        backgroundColor: '#0a0e17'
+    }).then(canvas => {
+        const PAD = 16, TITLE_H = 50;
+        const out = document.createElement('canvas');
+        out.width = canvas.width; 
+        out.height = canvas.height + TITLE_H;
+        const ctx = out.getContext('2d');
 
-    // Fundal
-    ctx.fillStyle='#0d1117';
-    ctx.fillRect(0,0,out.width,out.height);
+        // Fundal și texte
+        ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, out.width, out.height);
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px Segoe UI, sans-serif';
+        ctx.fillText('România Fire Watch', PAD, 28);
+        ctx.fillStyle = '#ff6b35'; ctx.font = '14px Segoe UI, sans-serif';
+        ctx.fillText(title, PAD, 46);
 
-    // Titlu
-    ctx.fillStyle='#ffffff';
-    ctx.font='bold 18px Segoe UI, sans-serif';
-    ctx.textAlign='left';
-    ctx.fillText('România Fire Watch',PAD,28);
-    ctx.fillStyle='#ff6b35';
-    ctx.font='14px Segoe UI, sans-serif';
-    ctx.fillText(title,PAD,46);
+        // Harta
+        ctx.drawImage(canvas, 0, TITLE_H);
 
-    // Harta
-    ctx.drawImage(canvas,0,TITLE_H);
-
-    // Watermark dreapta jos
-    ctx.fillStyle='rgba(255,255,255,0.5)';
-    ctx.font='11px Segoe UI, sans-serif';
-    ctx.textAlign='right';
-    ctx.fillText('NASA FIRMS · românia-fire-watch',W-PAD,out.height-PAD);
-
-    // Legendă stânga jos — bara de culori
-    const lgW=200, lgH=8;
-    const lgX=PAD, lgY=out.height-PAD-lgH-14;
-    const lg=ctx.createLinearGradient(lgX,0,lgX+lgW,0);
-    lg.addColorStop(0,'#1a2540');
-    lg.addColorStop(0.35,'#ff4d1c');
-    lg.addColorStop(0.65,'#ff8c42');
-    lg.addColorStop(1,'#ffd166');
-    ctx.fillStyle=lg;
-    ctx.beginPath(); ctx.roundRect(lgX,lgY,lgW,lgH,3); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.6)';
-    ctx.font='10px Segoe UI';
-    ctx.textAlign='left';
-    ctx.fillText('Minim',lgX,out.height-PAD);
-    ctx.textAlign='right';
-    ctx.fillText('Maxim',lgX+lgW,out.height-PAD);
-
-    // Download
-    const a=document.createElement('a');
-    a.download='romania_fire_watch_'+title.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.png';
-    a.href=out.toDataURL('image/png');
-    a.click();
-  });
+        // Descărcarea
+        const a = document.createElement('a');
+        a.download = 'romania_fire_watch_' + title.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.png';
+        a.href = out.toDataURL('image/png');
+        a.click();
+    }).catch(err => console.error("Eroare export:", err));
 }
 </script>
  <div id="tt-box"></div>
