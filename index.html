@@ -1360,7 +1360,6 @@ function initMap() {
   DARK_TILES.addTo(MAP);
   L.control.attribution({prefix:false}).addAttribution('© CartoDB · © NASA FIRMS').addTo(MAP);
   buildRank(); refreshMap();
-}
 
 function setBasemap(isLight) {
   if(isLight){MAP.removeLayer(DARK_TILES);if(!MAP.hasLayer(LIGHT_TILES))LIGHT_TILES.addTo(MAP);}
