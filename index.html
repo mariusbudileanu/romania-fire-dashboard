@@ -118,7 +118,7 @@ select:focus,select:hover{border-color:rgba(76,201,240,.4)}
 .lbtn.active{background:rgba(76,201,240,.18);border-color:rgba(76,201,240,.5);color:var(--blue)}
 .lbtn:hover{border-color:rgba(76,201,240,.35);color:var(--text)}
 .mgrid{display:grid;grid-template-columns:3fr 1fr;gap:.75rem}
-#map{height:650px;border-radius:var(--r);border:1px solid var(--border)}
+#map{height:560px;border-radius:var(--r);border:1px solid var(--border)}
 .mside{display:flex;flex-direction:column;gap:.75rem}
 .scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem}
 .syear{font-size:1.5rem;font-weight:800;color:var(--accent2);line-height:1}
@@ -903,18 +903,17 @@ document.getElementById('fstatus').textContent=total.toLocaleString('ro-RO')+
 // PANOU STATISTICI JUDEȚ
 // ═══════════════════════════════════════════════════════
 function updateJudetStats() {
-  const panel = document.getElementById('jud-stats');
-  if(!SEL_JUD1 || SEL_JUD2) { panel.style.display='none'; return; }
-  panel.style.display = 'block';
+  const panel=document.getElementById('jud-stats');
+  if(!SEL_JUD1||SEL_JUD2){panel.style.display='none';return;}
+  panel.style.display='block';
 
-  // LINIA ADĂUGATĂ PENTRU REPARAȚIE:
-  const jRow = __FIRES__.by_judet.find(j => j.JUDET_CODE === SEL_JUD1);
+  const judTotal = __FIRES__.by_judet;
+  const jRow = judTotal.find(j=>j.JUDET_CODE===SEL_JUD1);
   if(!jRow) return;
 
   const ns=JT.national_stats||{mean_count:0,mean_frp_mean:0,mean_frp_max:0,mean_frp_sum:0};
   document.getElementById('jud-stats-title').textContent=JUD_NAMES[SEL_JUD1]+' — statistici vs. media națională';
 
-  // Trend
   const series=getJudYearSeries(SEL_JUD1);
   const xs=series.map(r=>r.YEAR), ys=series.map(r=>r.count);
   const reg=linReg(xs,ys);
@@ -959,7 +958,6 @@ function updateJudetStats() {
     </div>
   `;
 }
-
 // ═══════════════════════════════════════════════════════
 // CHART: EVOLUȚIE ANUALĂ
 // ═══════════════════════════════════════════════════════
@@ -967,26 +965,24 @@ function buildYearChart() {
   const subEl=document.getElementById('cy-sub');
   const legEl=document.getElementById('cy-leg');
 
-if(SEL_JUD1) {
-    // REPARAȚIE: Forțăm axa X să fie completă pentru toți anii din filtru
+  if(SEL_JUD1) {
     const ys = []; for(let y = F.yf; y <= F.yt; y++) ys.push(y);
-    const ds = [];
-
-    [SEL_JUD1, SEL_JUD2].filter(Boolean).forEach((code, ci) => {
-      // REPARAȚIE: Filtrăm datele DOAR pentru județul selectat din sursa principală
+    const ds=[];
+    
+    [SEL_JUD1,SEL_JUD2].filter(Boolean).forEach((code,ci)=>{
       const series = __FIRES__.judet_year.filter(r => r.JUDET_CODE === code);
-      const byYear = {}; series.forEach(r => byYear[r.YEAR] = r.count);
-
+      const byYear={}; series.forEach(r=>byYear[r.YEAR]=r.count);
+      
       ds.push({
-        label: JUD_NAMES[code],
-        data: ys.map(y => byYear[y] || 0),
-        borderColor: JUD_COLORS[ci], backgroundColor: JUD_COLORS[ci]+'33',
-        borderWidth: 2, pointRadius: 3, tension: .3, fill: false, order: 1
+        label:JUD_NAMES[code],
+        data:ys.map(y => byYear[y] || 0),
+        borderColor:JUD_COLORS[ci],backgroundColor:JUD_COLORS[ci]+'33',
+        borderWidth:2,pointRadius:3,tension:.3,fill:false,order:1,
       });
-      // Linie trend
-      const xs=series.map(r=>r.YEAR), cnts=series.map(r=>r.count);
-      const reg=linReg(xs.filter((_,i)=>xs[i]>=F.yf&&xs[i]<=F.yt),
-                       cnts.filter((_,i)=>xs[i]>=F.yf&&xs[i]<=F.yt));
+      
+      const xs_reg=series.map(r=>r.YEAR), cnts_reg=series.map(r=>r.count);
+      const reg=linReg(xs_reg.filter((_,i)=>xs_reg[i]>=F.yf&&xs_reg[i]<=F.yt),
+                       cnts_reg.filter((_,i)=>xs_reg[i]>=F.yf&&xs_reg[i]<=F.yt));
       if(Math.abs(reg.slope)>30) {
         ds.push({
           label:`Trend ${JUD_NAMES[code]}`,
@@ -1004,7 +1000,6 @@ if(SEL_JUD1) {
         plugins:{legend:{labels:{color:'#7a8fad',boxWidth:12,padding:10}}},
         scales:{x:{grid:{color:GC}},y:{grid:{color:GC},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
   } else {
-    // Mod național — bare stacked + linie FRP
     const rows=fYears(),yrs=rows.map(r=>r.YEAR);
     const fmap={};D.frp_year.forEach(r=>fmap[r.year]=r.frp_mean);
     const ds=['MODIS','SNPP','NOAA20','NOAA21'].map(s=>({
@@ -1294,154 +1289,225 @@ function exportCanvas(canvasId, filename) {
 // ═══════════════════════════════════════════════════════
 // MAP HELPERS
 // ═══════════════════════════════════════════════════════
-function mVal(r,m) { if(!r) return 0; return r[m] || 0; }
-function fmtVal(v,m) { if(!v) return '—'; const s=v>=1000?(v/1000).toFixed(1)+'k':v.toLocaleString('ro-RO'); return s+(MUNITS[m]||''); }
-function fireHex(t) { const stops=[[0,[26,37,64]],[.15,[120,20,10]],[.4,[255,77,28]],[.7,[255,140,66]],[1,[255,209,102]]]; for(let i=1;i<stops.length;i++){ if(t<=stops[i][0]){ const f=(t-stops[i-1][0])/(stops[i][0]-stops[i-1][0]),a=stops[i-1][1],b=stops[i][1]; return '#'+[0,1,2].map(j=>Math.round(a[j]+(b[j]-a[j])*f).toString(16).padStart(2,'0')).join(''); } } return '#ffd166'; }
-function hexA(h,a){ const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+function mVal(r,m) {
+  if(!r) return 0;
+  if(m==='count')    return r.count||0;
+  if(m==='frp_mean') return r.frp_mean||0;
+  if(m==='frp_max')  return r.frp_max||0;
+  if(m==='frp_sum')  return r.frp_sum||0;
+  return 0;
+}
+function fmtVal(v,m) {
+  if(!v) return '—';
+  const s=v>=1000?(v/1000).toFixed(1)+'k':v.toLocaleString('ro-RO',{maximumFractionDigits:1});
+  return s+(MUNITS[m]||'');
+}
+function fireHex(t) {
+  const stops=[[0,[26,37,64]],[.15,[120,20,10]],[.4,[255,77,28]],[.7,[255,140,66]],[1,[255,209,102]]];
+  for(let i=1;i<stops.length;i++){
+    if(t<=stops[i][0]){
+      const f=(t-stops[i-1][0])/(stops[i][0]-stops[i-1][0]),a=stops[i-1][1],b=stops[i][1];
+      return '#'+[0,1,2].map(j=>Math.round(a[j]+(b[j]-a[j])*f).toString(16).padStart(2,'0')).join('');
+    }
+  }
+  return '#ffd166';
+}
+function hexA(h,a){
+  const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 function updLegend(mx,unit,isLight=false) {
-  document.getElementById('leg-max').textContent=typeof mx==='number'?mx.toLocaleString('ro-RO')+(unit||''):mx;
-  document.getElementById('leg-mid').textContent=typeof mx==='number'?(mx/2).toLocaleString('ro-RO')+(unit||''):'';
-  const grad=document.getElementById('map-lgrad'); if(grad) grad.style.background=isLight?'linear-gradient(90deg,#f0f0f0,#feb24c,#fd8d3c,#fc4e2a,#e31a1c,#b10026)':'linear-gradient(90deg,#1a2540,#ff4d1c,#ff8c42,#ffd166)';
+  document.getElementById('leg-max').textContent=
+    typeof mx==='number'?mx.toLocaleString('ro-RO',{maximumFractionDigits:0})+(unit||''):mx;
+  document.getElementById('leg-mid').textContent=
+    typeof mx==='number'?(mx/2).toLocaleString('ro-RO',{maximumFractionDigits:0})+(unit||''):'';
+  const grad=document.getElementById('map-lgrad');
+  if(isLight){
+    grad.style.background='linear-gradient(90deg,#f0f0f0,#feb24c,#fd8d3c,#fc4e2a,#e31a1c,#b10026)';
+  } else {
+    grad.style.background='linear-gradient(90deg,#1a2540,#ff4d1c,#ff8c42,#ffd166)';
+  }
 }
 
+// ═══════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════
 let MAP, DARK_TILES, LIGHT_TILES;
 let HLAYER,GLAYER,CLAYER,PLAYER,UALAYER;
 let ALAYER='heat', TMODE='all', PLAYIV=null;
 
 function initMap() {
-  if (MAP) return; 
-  
-  MAP = L.map('map', {
-      center: [45.95, 24.96], // Centrat mai bine pe România
-      zoom: 6.5,              // Încadrează toată țara (dacă ai setat height: 650px în CSS)
-      zoomSnap: 0.5,          
-      attributionControl: false,
-      preferCanvas: true      // MAGIC FIX: Previne defazarea poligoanelor la export
-  });
+    MAP = L.map('map', {
+        center: [45.95, 24.96], // Centrat mai bine
+        zoom: 6.5,              // Încadrează toată țara (dacă ai înălțime suficientă la #map)
+        zoomSnap: 0.5,          // Permite zoom cu virgulă
+        attributionControl: false,
+        preferCanvas: true      // ACEASTA ESTE LINIA CARE REPARĂ DEFAZAREA
+    });
 
-  DARK_TILES = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {subdomains: 'abcd', maxZoom: 18}).addTo(MAP);
-  LIGHT_TILES = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {subdomains: 'abcd', maxZoom: 18});
+  DARK_TILES=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    {subdomains:'abcd',maxZoom:18});
+  LIGHT_TILES=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    {subdomains:'abcd',maxZoom:18});
 
-  L.control.attribution({prefix: false}).addAttribution('© CartoDB · © NASA FIRMS').addTo(MAP);
-  
-  MAP_INITED = true; 
-  buildRank(); 
-  refreshMap();
+  DARK_TILES.addTo(MAP);
+  L.control.attribution({prefix:false}).addAttribution('© CartoDB · © NASA FIRMS').addTo(MAP);
+  buildRank(); refreshMap();
 }
 
 function setBasemap(isLight) {
-  if(!MAP) return;
   if(isLight){MAP.removeLayer(DARK_TILES);if(!MAP.hasLayer(LIGHT_TILES))LIGHT_TILES.addTo(MAP);}
   else{MAP.removeLayer(LIGHT_TILES);if(!MAP.hasLayer(DARK_TILES))DARK_TILES.addTo(MAP);}
-  const mapEl = document.getElementById('map');
-  if(mapEl) mapEl.classList.toggle('positron',isLight);
+  document.getElementById('map').classList.toggle('positron',isLight);
 }
 
-function getMetric(){ const el = document.getElementById('m-metric'); return el ? el.value : 'count'; }
+function getMetric(){return document.getElementById('m-metric').value;}
 
+function getGridData(){
+  if(TMODE==='year'){const y=+document.getElementById('yslider').value;return D.grid_time.filter(r=>r.YEAR===y);}
+  return D.grid;
+}
+function getJudetData(){
+  if(TMODE==='year'){
+    const y=+document.getElementById('yslider').value;
+    const nm={};D.by_judet.forEach(j=>nm[j.JUDET_CODE]=j.JUDET_NAME);
+    return D.judet_year.filter(r=>r.YEAR===y).map(r=>({
+      JUDET_CODE:r.JUDET_CODE,JUDET_NAME:nm[r.JUDET_CODE]||r.JUDET_CODE,
+      count:r.count,frp_mean:r.frp_mean,frp_max:r.frp_max||0,frp_sum:r.frp_sum||0
+    }));
+  }
+  return D.by_judet;
+}
 function getUatDataFiltered(judCode){
   if(!UAT_STATS) return [];
   if(TMODE==='year'){
-    const yEl = document.getElementById('yslider');
-    const y = yEl ? +yEl.value : F.yt;
-    return UAT_STATS.uat_year.filter(r=>r.YEAR===y && (!judCode||r.UAT_CC===judCode)).map(r=>({
-      ...r, frp_max: r.frp_max || 0, frp_sum: r.frp_sum || 0
+    const y=+document.getElementById('yslider').value;
+    // lookup UAT_CC din by_uat dacă lipsește în uat_year
+    const ccMap={};UAT_STATS.by_uat.forEach(u=>ccMap[u.UAT_SIRUTA]=u.UAT_CC);
+    const nm={};UAT_STATS.by_uat.forEach(u=>nm[u.UAT_SIRUTA]=u.UAT_NAME);
+    const rows=UAT_STATS.uat_year.filter(r=>{
+      const cc=r.UAT_CC||ccMap[r.UAT_SIRUTA]||'';
+      return r.YEAR===y&&(!judCode||cc===judCode);
+    });
+    return rows.map(r=>({
+      UAT_SIRUTA:r.UAT_SIRUTA,
+      UAT_NAME:nm[r.UAT_SIRUTA]||r.UAT_SIRUTA,
+      UAT_CC:r.UAT_CC||ccMap[r.UAT_SIRUTA]||'',
+      count:r.count,frp_mean:r.frp_mean,frp_max:r.frp_max||0,frp_sum:r.frp_sum||0
     }));
   }
   return UAT_STATS.by_uat.filter(u=>!judCode||u.UAT_CC===judCode);
 }
 
 function clearLayers(){
-  if(!MAP) return;
-  [HLAYER,GLAYER,CLAYER,PLAYER,UALAYER].forEach(l=>{if(l && MAP.hasLayer(l)) MAP.removeLayer(l);});
+  [HLAYER,GLAYER,CLAYER,PLAYER,UALAYER].forEach(l=>{if(l)MAP.removeLayer(l);});
   HLAYER=GLAYER=CLAYER=PLAYER=UALAYER=null;
 }
 
 function refreshMap(){
-  if(!MAP_INITED) return;
   clearLayers();
   const m=getMetric();
-  if(ALAYER==='heat') buildHeatLayer(m);
-  else if(ALAYER==='grid') buildGridLayer(m);
-  else if(ALAYER==='choro') buildChoroLayer(m);
-  else if(ALAYER==='uat') buildUatLayer(m);
-  else if(ALAYER==='points') buildPointsLayer(m); 
+  if     (ALAYER==='heat')   buildHeatLayer(m);
+  else if(ALAYER==='grid')   buildGridLayer(m);
+  else if(ALAYER==='choro')  buildChoroLayer(m);
+  else if(ALAYER==='points') buildPointsLayer(m);
+  else if(ALAYER==='uat')    buildUatLayer(m);
   buildRank();
 }
+function onMetricChange(){
+  updateMetricNote();
+  refreshMap();
+}
 
-// ═══════════════════════════════════════════════════════
-// MAP LAYERS & INTERACTION
-// ═══════════════════════════════════════════════════════
+function updateMetricNote(){
+  const metric=document.getElementById('m-metric').value;
+  const tmode=document.getElementById('m-time').value;
+  const show=tmode==='year' && ALAYER==='uat' && (metric==='frp_max'||metric==='frp_sum');
+  document.getElementById('metric-note').style.display=show?'inline':'none';
+}
+
+function setLayer(n){
+  ALAYER=n;
+  ['heat','grid','choro','points','uat'].forEach(x=>{
+    const el=document.getElementById('lb-'+x);
+    if(el)el.classList.toggle('active',x===n);
+  });
+  const jg=document.getElementById('jud-grp'),js=document.getElementById('jud-sep');
+  const isLight=n==='uat'||n==='choro';
+  jg.style.display=n==='uat'?'flex':'none';
+  js.style.display=n==='uat'?'block':'none';
+  setBasemap(isLight);
+  refreshMap();
+}
+
+// ── Layers ────────────────────────────────────────────────────────────────
 function buildHeatLayer(m){
-  if(!MAP) return;
-  const data = TMODE==='year' ? window.__FIRES__.grid_time.filter(r=>r.YEAR===+document.getElementById('yslider').value) : window.__FIRES__.grid;
-  if(!data || data.length === 0) return;
-  const vals=data.map(r=>mVal(r,m)), mx=Math.max(...vals,1);
-  HLAYER=L.heatLayer(data.map(r=>[r.LAT_BIN||r.LAT2,r.LON_BIN||r.LON2,Math.sqrt(mVal(r,m)/mx)]),{radius:18,blur:20,gradient:{0:'#1a2540',.3:'#ff4d1c',.6:'#ff8c42',1:'#ffd166'}}).addTo(MAP);
-  updLegend(mx,MUNITS[m]);
+  const data=getGridData(),vals=data.map(r=>mVal(r,m)),mx=Math.max(...vals,1);
+  HLAYER=L.heatLayer(data.map(r=>[r.LAT_BIN||r.LAT2,r.LON_BIN||r.LON2,Math.sqrt(mVal(r,m)/mx)]),
+    {radius:18,blur:20,maxZoom:10,gradient:{0:'#1a2540',.3:'#ff4d1c',.6:'#ff8c42',1:'#ffd166'}}).addTo(MAP);
+  updLegend(Math.round(mx),MUNITS[m]);
 }
 
 function buildGridLayer(m){
-  if(!MAP) return;
-  const data = TMODE==='year' ? window.__FIRES__.grid_time.filter(r=>r.YEAR===+document.getElementById('yslider').value) : window.__FIRES__.grid;
-  if(!data || data.length === 0) return;
-  const vals=data.map(r=>mVal(r,m)), mx=Math.max(...vals,1);
-  const step=TMODE==='year'?.2:.1, layers=[];
+  const data=getGridData(),vals=data.map(r=>mVal(r,m)),mx=Math.max(...vals,1);
+  const step=TMODE==='year'?.2:.1,layers=[];
   data.forEach(r=>{
-    const v=mVal(r,m); if(!v) return;
-    const t=Math.sqrt(v/mx), lat=r.LAT_BIN||r.LAT2, lon=r.LON_BIN||r.LON2;
+    const v=mVal(r,m);if(!v)return;
+    const t=Math.sqrt(v/mx),lat=r.LAT_BIN||r.LAT2,lon=r.LON_BIN||r.LON2;
     const rect=L.rectangle([[lat-step/2,lon-step/2],[lat+step/2,lon+step/2]],
       {color:'transparent',fillColor:fireHex(t),fillOpacity:.25+.6*t,weight:0});
     rect.bindTooltip(`<b>${r.count.toLocaleString('ro-RO')} det.</b><br>FRP mediu: ${r.frp_mean} MW`,{sticky:true});
-    rect.on('click',()=>showCellInfo(r)); layers.push(rect);
+    rect.on('click',()=>showCellInfo(r));layers.push(rect);
   });
   GLAYER=L.layerGroup(layers).addTo(MAP);
   updLegend(Math.round(mx),MUNITS[m]);
 }
 
-function buildPointsLayer(m){
-   if(!MAP) return;
-   const data = window.__FIRES__.grid;
-   const vals=data.map(r=>mVal(r,m)), mx=Math.max(...vals,1), layers=[];
-   data.forEach(r=>{
-     const v=mVal(r,m); if(!v) return;
-     const t=Math.sqrt(v/mx);
-     const c=L.circleMarker([r.LAT_BIN||r.LAT2, r.LON_BIN||r.LON2], {radius:3+10*t, color:'transparent', fillColor:fireHex(t), fillOpacity:.5+.4*t, weight:0});
-     c.bindTooltip(`<b>${r.count.toLocaleString('ro-RO')} det.</b>`,{sticky:true});
-     layers.push(c);
-   });
-   PLAYER=L.layerGroup(layers).addTo(MAP);
-   updLegend(Math.round(mx),MUNITS[m]);
-}
-
 function buildChoroLayer(m){
-  if(!MAP || typeof JGJ === 'undefined') return;
-  const jd=window.__FIRES__.by_judet, lk={}; jd.forEach(j=>lk[j.JUDET_CODE]=j);
-  const vals=jd.map(j=>mVal(j,m)), mx=Math.max(...vals,1);
+  const jd=getJudetData(),lk={};jd.forEach(j=>lk[j.JUDET_CODE]=j);
+  const vals=jd.map(j=>mVal(j,m)),mx=Math.max(...vals,1);
   CLAYER=L.geoJSON(JGJ,{
     style:f=>{const row=lk[f.properties.code],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
       return{color:'rgba(76,201,240,.3)',weight:1,fillColor:fireHex(t),fillOpacity:v?.2+.65*t:.05};},
     onEachFeature:(f,layer)=>{
       const row=lk[f.properties.code];
-      layer.bindTooltip(row?`<b>${row.JUDET_NAME}</b><br>${row.count.toLocaleString('ro-RO')} det.`:`<b>${f.properties.name}</b>`,{sticky:true});
+      layer.bindTooltip(row?`<b>${row.JUDET_NAME}</b><br>${row.count.toLocaleString('ro-RO')} det.<br>FRP max: ${row.frp_max} MW`:`<b>${f.properties.name}</b>`,{sticky:true});
       layer.on('click',()=>{if(row)showJudetInfo(row);});
       layer.on('mouseover',function(){this.setStyle({weight:2,color:'#cc3300'});});
-      layer.on('mouseout', function(){if(CLAYER)CLAYER.resetStyle(this);});
+      layer.on('mouseout', function(){CLAYER.resetStyle(this);});
     }
   }).addTo(MAP);
   updLegend(Math.round(mx),MUNITS[m]);
 }
 
-async function buildUatLayer(m){
-  if(!MAP) return;
-  const ok=await loadUATData(); if(!ok) return;
-  const selJEl=document.getElementById('uat-jud');
-  const selJ = selJEl ? selJEl.value : '';
-  const uatData=getUatDataFiltered(selJ);
-  const statsLk={}; uatData.forEach(u=>statsLk[u.UAT_SIRUTA]=u);
-  const vals=uatData.map(u=>mVal(u,m)), mx=Math.max(...vals,1);
-  let feats=UAT_GEO.features; if(selJ) feats=feats.filter(f=>f.properties.cc===selJ);
+function buildPointsLayer(m){
+  const data=getGridData(),vals=data.map(r=>mVal(r,m)),mx=Math.max(...vals,1),layers=[];
+  data.forEach(r=>{
+    const v=mVal(r,m);if(!v)return;
+    const t=Math.sqrt(v/mx);
+    const c=L.circleMarker([r.LAT_BIN||r.LAT2,r.LON_BIN||r.LON2],
+      {radius:3+10*t,color:'transparent',fillColor:fireHex(t),fillOpacity:.5+.4*t,weight:0});
+    c.bindTooltip(`<b>${r.count.toLocaleString('ro-RO')} det.</b><br>FRP: ${r.frp_mean} MW`,{sticky:true});
+    c.on('click',()=>showCellInfo(r));layers.push(c);
+  });
+  PLAYER=L.layerGroup(layers).addTo(MAP);
+  updLegend(Math.round(mx),MUNITS[m]);
+}
 
+async function buildUatLayer(m){
+  const ok=await loadUATData();if(!ok)return;
+  if(UALAYER){MAP.removeLayer(UALAYER);UALAYER=null;}
+  const selJ=document.getElementById('uat-jud').value;
+  const uatData=getUatDataFiltered(selJ);
+  const statsLk={};uatData.forEach(u=>statsLk[u.UAT_SIRUTA]=u);
+  const vals=uatData.map(u=>mVal(u,m)),mx=Math.max(...vals,1);
+  let feats=UAT_GEO.features;
+  if(selJ)feats=feats.filter(f=>f.properties.cc===selJ);
+
+  const TS={'Municipiu resedinta de judet':'Municipiu (reșed.)','Municipiu, altul decat resedinta de judet':'Municipiu',
+    'Oras':'Oraș','Comuna':'Comună','Sectoarele municipiului Bucuresti':'Sector București'};
+
+  // Pe fond deschis folosim o paletă diferită (YlOrRd)
   function lightFireHex(t){
     const stops=[[0,[240,240,240]],[.2,[254,204,92]],[.45,[253,141,60]],[.7,[240,59,32]],[1,[177,0,38]]];
     for(let i=1;i<stops.length;i++){
@@ -1449,166 +1515,558 @@ async function buildUatLayer(m){
         const f=(t-stops[i-1][0])/(stops[i][0]-stops[i-1][0]),a=stops[i-1][1],b=stops[i][1];
         return '#'+[0,1,2].map(j=>Math.round(a[j]+(b[j]-a[j])*f).toString(16).padStart(2,'0')).join('');
       }
-    } return '#b10026';
+    }
+    return '#b10026';
   }
 
   UALAYER=L.geoJSON({type:'FeatureCollection',features:feats},{
-    style:f=>{ const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
-      return{color:'rgba(80,80,80,.4)',weight:.7,fillColor:v>0?lightFireHex(t):'#e8e8e8',fillOpacity:v>0?.2+.7*t:.15};},
+    style:f=>{
+      const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
+      return{color:'rgba(80,80,80,.4)',weight:.7,fillColor:v>0?lightFireHex(t):'#e8e8e8',fillOpacity:v>0?.2+.7*t:.15};
+    },
     onEachFeature:(f,layer)=>{
       const p=f.properties,row=statsLk[p.siruta],v=row?mVal(row,m):null;
-      layer.bindTooltip(`<b>${p.name}</b><br>${MLABELS[m]}: <b>${v!==null?fmtVal(v,m):'fără date'}</b>`,{sticky:true});
-      layer.on('click',()=>{ if(row) showUATInfo(row,p,m); });
+      layer.bindTooltip(`<b>${p.name}</b> · ${p.cc}<br>${MLABELS[m]}: <b>${v!==null?fmtVal(v,m):'fără date'}</b>`,{sticky:true});
+      layer.on('click',()=>{
+        const popup=`<div class="ptitle">${p.name}</div>
+          <div class="ptype">${TS[p.type]||p.type} · ${p.cn||p.cc}</div>
+          <div class="prow"><span>SIRUTA</span><span class="pval">${p.siruta}</span></div>
+          <div class="pdiv"></div>
+          ${row?`
+          <div class="prow"><span>Nr. detecții</span><span class="pval ${m==='count'?'pact':''}">${row.count.toLocaleString('ro-RO')}</span></div>
+          <div class="prow"><span>FRP mediu</span><span class="pval ${m==='frp_mean'?'pact':''}">${row.frp_mean} MW</span></div>
+          <div class="prow"><span>FRP maxim</span><span class="pval ${m==='frp_max'?'pact':''}">${row.frp_max||'—'} MW</span></div>
+          <div class="prow"><span>FRP total</span><span class="pval ${m==='frp_sum'?'pact':''}">${row.frp_sum?((row.frp_sum/1000).toFixed(1)+' GW'):'—'}</span></div>
+          `:'<div style="color:var(--muted);font-size:.65rem">Fără detecții înregistrate</div>'}`;
+        layer.bindPopup(popup).openPopup();
+        if(row)showUATInfo(row,p,m);
+      });
+      layer.on('mouseover',function(){this.setStyle({weight:2,color:'#cc3300'});});
+      layer.on('mouseout', function(){UALAYER.resetStyle(this);});
     }
   }).addTo(MAP);
+
   updLegend(Math.round(mx),MUNITS[m],true);
-  if(selJ && UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds());
+  if(selJ&&UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds(),{padding:[20,20]});
+  buildRank();
 }
 
-// ═══════════════════════════════════════════════════════
-// INFO PANELS & RANKING
-// ═══════════════════════════════════════════════════════
+function onUatJudChange(){if(ALAYER==='uat')refreshMap();}
+
+// ── Ranking ────────────────────────────────────────────────────────────────
 function buildRank(){
-  const m=getMetric(), titleEl=document.getElementById('rank-title');
-  if(!titleEl) return;
+  const m=getMetric(),titleEl=document.getElementById('rank-title');
   if(ALAYER==='uat'&&UAT_STATS){
-    const selJEl=document.getElementById('uat-jud');
-    const selJ = selJEl ? selJEl.value : '';
+    const selJ=document.getElementById('uat-jud').value;
     const uatData=getUatDataFiltered(selJ);
     const sorted=[...uatData].sort((a,b)=>mVal(b,m)-mVal(a,m)).slice(0,10);
     const mx=sorted.length?mVal(sorted[0],m)||1:1;
     titleEl.textContent=selJ?`Top UAT — ${selJ}`:'Top UAT (național)';
     document.getElementById('rlist').innerHTML=sorted.map((u,i)=>{
-      const v=mVal(u,m), pct=(v/mx*100).toFixed(0);
-      return `<div class="rrow" onclick="showUATInfoById('${u.UAT_SIRUTA}','${m}')"><span class="rnum">${i+1}</span><span class="rname">${u.UAT_NAME}</span><div class="rbw"><div class="rbar" style="width:${pct}%"></div></div><span class="rval">${fmtVal(v,m)}</span></div>`;
+      const v=mVal(u,m),pct=(v/mx*100).toFixed(0);
+      return `<div class="rrow" onclick="showUATInfoById('${u.UAT_SIRUTA}','${m}')">
+        <span class="rnum">${i+1}</span>
+        <span class="rname" title="${u.UAT_NAME}">${u.UAT_NAME}</span>
+        <div class="rbw"><div class="rbar" style="width:${pct}%"></div></div>
+        <span class="rval">${fmtVal(v,m)}</span>
+      </div>`;
     }).join('');
   } else {
-    const jd=window.__FIRES__.by_judet, sorted=[...jd].sort((a,b)=>mVal(b,m)-mVal(a,m)).slice(0,10);
+    const jd=getJudetData(),sorted=[...jd].sort((a,b)=>mVal(b,m)-mVal(a,m)).slice(0,10);
     const mx=sorted.length?mVal(sorted[0],m)||1:1;
     titleEl.textContent='Top județe';
     document.getElementById('rlist').innerHTML=sorted.map((j,i)=>{
-      const v=mVal(j,m), pct=(v/mx*100).toFixed(0);
-      return `<div class="rrow" onclick='showJudetInfo(${JSON.stringify(j)})'><span class="rnum">${i+1}</span><span class="rname">${j.JUDET_NAME}</span><div class="rbw"><div class="rbar" style="width:${pct}%"></div></div><span class="rval">${fmtVal(v,m)}</span></div>`;
+      const v=mVal(j,m),pct=(v/mx*100).toFixed(0);
+      const jj=JSON.stringify(j).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<div class="rrow" onclick="showJudetInfo(${jj})">
+        <span class="rnum">${i+1}</span>
+        <span class="rname">${j.JUDET_NAME}</span>
+        <div class="rbw"><div class="rbar" style="width:${pct}%"></div></div>
+        <span class="rval">${fmtVal(v,m)}</span>
+      </div>`;
     }).join('');
   }
 }
 
+// ── Info panels ────────────────────────────────────────────────────────────
 function showJudetInfo(j){
   if(!j)return;
   const m=getMetric();
-  document.getElementById('itext').innerHTML=`<div class="big">${j.JUDET_NAME}</div>Detecții: <b>${j.count.toLocaleString('ro-RO')}</b><br>FRP mediu: <b>${j.frp_mean} MW</b><br>FRP maxim: <b>${j.frp_max} MW</b>`;
+  const rank=[...D.by_judet].sort((a,b)=>b.count-a.count).findIndex(x=>x.JUDET_CODE===j.JUDET_CODE)+1;
+  document.getElementById('itext').innerHTML=
+    `<div class="big">${j.JUDET_NAME}</div>`+
+    `<div style="color:var(--muted);font-size:.62rem;margin-bottom:.4rem">Rang: #${rank}/42</div>`+
+    `Detecții: <b>${(j.count||0).toLocaleString('ro-RO')}</b><br>`+
+    `FRP maxim: <b>${j.frp_max||0} MW</b><br>`+
+    `FRP mediu: <b>${j.frp_mean||0} MW</b><br>`+
+    `FRP total: <b>${((j.frp_sum||0)/1000).toFixed(1)} GW</b><br>`+
+    `<span style="color:var(--muted);font-size:.63rem">Metrică activă: <b style="color:var(--gold)">${fmtVal(mVal(j,m),m)}</b></span>`;
 }
-
 function showUATInfo(row,props,m){
-  if(!row)return; if(!m)m=getMetric();
-  document.getElementById('itext').innerHTML=`<div class="big">${props?props.name:row.UAT_NAME}</div>Județ: <b>${row.UAT_CC}</b><br>Detecții: <b>${row.count.toLocaleString('ro-RO')}</b><br>FRP mediu: <b>${row.frp_mean} MW</b>`;
+  if(!row)return;if(!m)m=getMetric();
+  const TS={'Municipiu resedinta de judet':'Municipiu (reșed.)','Municipiu, altul decat resedinta de judet':'Municipiu',
+    'Oras':'Oraș','Comuna':'Comună','Sectoarele municipiului Bucuresti':'Sector București'};
+  const judData=UAT_STATS?getUatDataFiltered(row.UAT_CC):[];
+  const sorted=[...judData].sort((a,b)=>mVal(b,m)-mVal(a,m));
+  const ri=sorted.findIndex(u=>u.UAT_SIRUTA===row.UAT_SIRUTA);
+  document.getElementById('itext').innerHTML=
+    `<div class="big">${props?props.name:row.UAT_NAME}</div>`+
+    `<div style="color:var(--muted);font-size:.62rem;margin-bottom:.4rem">${props?(TS[props.type]||props.type)+' · ':''} ${row.UAT_CC}</div>`+
+    `SIRUTA: <b>${props?props.siruta:row.UAT_SIRUTA}</b><br>`+
+    (ri>=0?`Rang în județ: <b>#${ri+1}/${sorted.length}</b><br>`:'')+
+    `Detecții: <b>${(row.count||0).toLocaleString('ro-RO')}</b><br>`+
+    `FRP mediu: <b>${row.frp_mean||0} MW</b><br>`+
+    (row.frp_max?`FRP maxim: <b>${row.frp_max} MW</b><br>`:'')+
+    (row.frp_sum?`FRP total: <b>${(row.frp_sum/1000).toFixed(1)} GW</b><br>`:'')+
+    `<span style="color:var(--muted);font-size:.63rem">Metrică activă: <b style="color:var(--gold)">${fmtVal(mVal(row,m),m)}</b></span>`;
+}
+function showUATInfoById(siruta,m){
+  if(!UAT_STATS||!siruta)return;
+  const row=UAT_STATS.by_uat.find(u=>u.UAT_SIRUTA===siruta);
+  if(row)showUATInfo(row,null,m||getMetric());
 }
 function showCellInfo(r){
-  document.getElementById('itext').innerHTML=`<div class="big">${(r.count||0).toLocaleString('ro-RO')}</div><div style="font-size:.62rem;color:var(--muted)">detecții în celulă</div>FRP mediu: <b>${r.frp_mean||0} MW</b>`;
+  document.getElementById('itext').innerHTML=
+    `<div style="font-size:.62rem;color:var(--muted)">${(r.LAT_BIN||r.LAT2).toFixed(1)}°N · ${(r.LON_BIN||r.LON2).toFixed(1)}°E</div>`+
+    `<div class="big">${(r.count||0).toLocaleString('ro-RO')}</div>`+
+    `<div style="font-size:.62rem;color:var(--muted);margin-bottom:.3rem">detecții în celulă</div>`+
+    `FRP mediu: <b>${r.frp_mean||0} MW</b>`;
+}
+
+// ── Slider temporal ────────────────────────────────────────────────────────
+function onTimeModeChange(){
+  TMODE=document.getElementById('m-time').value;
+  document.getElementById('slider-wrap').style.display=TMODE==='year'?'block':'none';
+  updateMetricNote();
+  if(TMODE==='year')onSlider(+document.getElementById('yslider').value);
+  else refreshMap();
+}
+
+function onMetricChange(){
+  updateMetricNote();
+  refreshMap();
+}
+
+function onSlider(y){
+  document.getElementById('syear').textContent=y;
+  const cnt=D.judet_year.filter(r=>r.YEAR===y).reduce((s,r)=>s+r.count,0);
+  document.getElementById('scnt').textContent=cnt.toLocaleString('ro-RO')+' detecții';
+  refreshMap();
+}
+function togglePlay(){
+  const btn=document.getElementById('playbtn');
+  if(PLAYIV){clearInterval(PLAYIV);PLAYIV=null;btn.textContent='▶ Play';return;}
+  btn.textContent='⏹ Stop';
+  const sl=document.getElementById('yslider'),sp=+document.getElementById('speedsel').value;
+  PLAYIV=setInterval(()=>{let v=+sl.value+1;if(v>+sl.max)v=+sl.min;sl.value=v;onSlider(v);},sp);
+}
+
+
+// ── Header badges ─────────────────────────────────────────────────────────
+function updateHeaderBadges() {
+  // Totalul real = suma din by_year_src (sursă unică de adevăr)
+  const total = D.by_year_src
+    ? D.by_year_src.reduce((s,r)=>s+['MODIS','SNPP','NOAA20','NOAA21'].reduce((ss,k)=>ss+(r[k]||0),0),0)
+    : (D.kpis.total || D.kpis.total);
+  document.getElementById('badge-total').textContent =
+    total.toLocaleString('ro-RO') + ' detecții';
+
+  let lastUpdate = (D.kpis && D.kpis.last_update) ? D.kpis.last_update : null;
+  if (!lastUpdate && D.top_frp && D.top_frp.length > 0) {
+    const dates = D.top_frp.map(r => r.ACQ_DATE).sort().reverse();
+    lastUpdate = dates[0];
+  }
+  const d = lastUpdate ? new Date(lastUpdate) : new Date();
+  const fmt = d.toLocaleDateString('ro-RO', {day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('badge-update').textContent = 'Actualizat ' + fmt;
 }
 
 // ═══════════════════════════════════════════════════════
-// LIVE TAB — DETECȚII RECENTE (NRT)
+// INIT
 // ═══════════════════════════════════════════════════════
-let LIVE_MAP=null, LIVE_LAYER=null, LIVE_INITED=false;
+const mtt=document.createElement('div');
+mtt.id='mtt';
+mtt.style.cssText='position:fixed;background:rgba(10,14,23,.95);border:1px solid rgba(76,201,240,.3);border-radius:8px;padding:6px 11px;font-size:.7rem;color:#f0f4ff;pointer-events:none;z-index:9999;display:none;line-height:1.5';
+document.body.appendChild(mtt);
+
+// Preîncărcăm UAT în background după 2 secunde
+setTimeout(()=>loadUATData().catch(()=>{}),2000);
+
+initSelects();
+updateHeaderBadges();
+buildFRPChart(); buildConfChart(); buildTable();
+updateCharts();
+window.addEventListener('resize',()=>setTimeout(buildHeatmap,100));
+
+// ═══════════════════════════════════════════════════════
+// TAB LIVE — DETECȚII RECENTE
+// ═══════════════════════════════════════════════════════
+let LIVE_MAP = null, LIVE_LAYER = null;
+let LIVE_INITED = false;
+
+// Data curentă în format YYYY-MM-DD
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+function yesterdayStr() {
+  const d = new Date(); d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+function nDaysAgoStr(n) {
+  const d = new Date(); d.setDate(d.getDate()-n);
+  return d.toISOString().slice(0,10);
+}
+
+function setLiveToday() {
+  const t = todayStr();
+  document.getElementById('live-date-from').value = t;
+  document.getElementById('live-date-to').value   = t;
+  loadLiveData();
+}
+function setLiveYesterday() {
+  const y = yesterdayStr();
+  document.getElementById('live-date-from').value = y;
+  document.getElementById('live-date-to').value   = y;
+  loadLiveData();
+}
 
 function initLiveMap() {
   if (LIVE_INITED) return;
   LIVE_MAP = L.map('live-map', {center:[45.9,25.0], zoom:7, attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(LIVE_MAP);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    {subdomains:'abcd', maxZoom:18}).addTo(LIVE_MAP);
+  L.control.attribution({prefix:false}).addAttribution('© CartoDB · © NASA FIRMS').addTo(LIVE_MAP);
   LIVE_INITED = true;
-  const t = new Date().toISOString().slice(0,10);
-  const dFrom = document.getElementById('live-date-from');
-  const dTo = document.getElementById('live-date-to');
-  if(dFrom) dFrom.value = t; 
-  if(dTo) dTo.value = t;
+  setTimeout(()=>LIVE_MAP.invalidateSize(), 100);
+
+  // Setăm datele implicite și încărcăm azi
+  const today = todayStr();
+  document.getElementById('live-date-from').value = today;
+  document.getElementById('live-date-to').value   = today;
   loadLiveData();
 }
 
-function loadLiveData() {
-  const R = window.__RECENT__; if (!R || !LIVE_MAP) return;
-  const dFromEl = document.getElementById('live-date-from');
-  const dToEl = document.getElementById('live-date-to');
-  if(!dFromEl || !dToEl) return;
-  
-  const df = dFromEl.value;
-  const dt = dToEl.value;
-  const points = R.points.filter(p => p.date >= df && p.date <= dt);
-  
-  if (LIVE_LAYER && LIVE_MAP.hasLayer(LIVE_LAYER)) LIVE_MAP.removeLayer(LIVE_LAYER);
-  const layers = points.map(p => {
-    return L.circleMarker([p.lat, p.lon], {radius: 5, color: 'transparent', fillColor: fireHex(p.frp/50), fillOpacity: 0.8})
-           .bindTooltip(`FRP: ${p.frp} MW<br>${p.date}`);
-  });
-  LIVE_LAYER = L.layerGroup(layers).addTo(LIVE_MAP);
-  const countEl = document.getElementById('lk-count');
-  if(countEl) countEl.textContent = points.length;
+// Culoare punct după FRP (verde mic → roșu mare)
+function frpColor(frp) {
+  if (frp <= 2)  return '#06d6a0';
+  if (frp <= 5)  return '#4cc9f0';
+  if (frp <= 15) return '#ffd166';
+  if (frp <= 50) return '#ff8c42';
+  return '#ff4d1c';
 }
 
-// ═══════════════════════════════════════════════════════
-// TOOLTIP DICTIONARY
-// ═══════════════════════════════════════════════════════
+function frpRadius(frp) {
+  return Math.max(4, Math.min(18, 4 + Math.sqrt(frp) * 1.2));
+}
+
+function isNRTRange(dateFrom, dateTo) {
+  // NRT disponibil pentru ultimele 5 zile față de data curentă a browserului
+  const cutoff = nDaysAgoStr(5);
+  return dateFrom >= cutoff && dateTo <= todayStr();
+}
+
+function loadLiveData() {
+  const dateFrom = document.getElementById('live-date-from').value;
+  const dateTo   = document.getElementById('live-date-to').value;
+
+  if (!dateFrom || !dateTo) {
+    document.getElementById('live-status').textContent = 'Selectează o perioadă validă';
+    return;
+  }
+  if (dateFrom > dateTo) {
+    document.getElementById('live-status').textContent = '⚠ Data început trebuie să fie înainte de data sfârșit';
+    return;
+  }
+
+  // Limităm intervalul la 7 zile
+  const from = new Date(dateFrom), to = new Date(dateTo);
+  const diffDays = (to - from) / (1000*60*60*24);
+  if (diffDays > 7) {
+    document.getElementById('live-status').textContent = '⚠ Intervalul maxim este 7 zile';
+    return;
+  }
+
+  const useNRT = isNRTRange(dateFrom, dateTo);
+  const badge  = document.getElementById('live-mode-badge');
+
+  // Verificăm dacă avem date NRT pentru intervalul selectat
+  const hasNRTData = window.__RECENT__ && window.__RECENT__.count > 0 &&
+    window.__RECENT__.points.some(p => p.date >= dateFrom && p.date <= dateTo);
+
+  if (hasNRTData) {
+    badge.className = 'live-mode-badge nrt';
+    badge.textContent = '● NRT live';
+    loadFromRecent(dateFrom, dateTo);
+  } else if (useNRT && window.__RECENT__) {
+    // Avem fereastra NRT dar fără date pentru această perioadă
+    badge.className = 'live-mode-badge nrt';
+    badge.textContent = '● NRT (0 detecții)';
+    loadFromRecent(dateFrom, dateTo);
+  } else {
+    badge.className = 'live-mode-badge arc';
+    badge.textContent = '◉ Arhivă';
+    loadFromArchive(dateFrom, dateTo);
+  }
+}
+
+// ── Încărcare din recent_fires.js (NRT) ───────────────────────────────────
+function loadFromRecent(dateFrom, dateTo) {
+  const R = window.__RECENT__;
+  if (!R) {
+    document.getElementById('live-status').textContent =
+      '⚠ recent_fires.js nu e disponibil — rulați Actions manual';
+    return;
+  }
+
+  const points = R.points.filter(p => p.date >= dateFrom && p.date <= dateTo);
+  document.getElementById('live-status').textContent =
+    `${points.length} detecții · sursa: NRT · generat ${R.generated.slice(0,16).replace('T',' ')} UTC`;
+
+  // Actualizăm ora last update
+  const updTime = R.generated.slice(11,16);
+  document.getElementById('lk-updated').textContent = updTime;
+
+  renderLivePoints(points, dateFrom, dateTo);
+}
+
+// ── Încărcare din arhivă (grid agregat) ───────────────────────────────────
+function loadFromArchive(dateFrom, dateTo) {
+  // Extragem luna/an din interval și afișăm celulele din grid
+  const from = new Date(dateFrom);
+  const months = new Set();
+  const cursor = new Date(dateFrom);
+  while (cursor <= new Date(dateTo)) {
+    months.add(`${cursor.getFullYear()}-${cursor.getMonth()+1}`);
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  // Filtrăm heatmap din fires_data
+  const cells = [];
+  if (D && D.heatmap) {
+    D.heatmap.forEach(r => {
+      const key = `${r.YEAR}-${r.MONTH}`;
+      if (months.has(key)) {
+        cells.push(r);
+      }
+    });
+  }
+
+  document.getElementById('live-status').textContent =
+    `Mod arhivă: ${cells.length} celule de grilă pentru perioada selectată`;
+  document.getElementById('lk-updated').textContent = '—';
+
+  renderArchiveGrid(cells, dateFrom, dateTo);
+}
+
+// ── Render puncte NRT ─────────────────────────────────────────────────────
+function renderLivePoints(points, dateFrom, dateTo) {
+  if (LIVE_LAYER) { LIVE_MAP.removeLayer(LIVE_LAYER); LIVE_LAYER=null; }
+  if (!points.length) {
+    document.getElementById('lk-count').textContent    = '0';
+    document.getElementById('lk-frp-max').textContent  = '—';
+    document.getElementById('lk-frp-mean').textContent = '—';
+    document.getElementById('lk-period').textContent   = dateFrom===dateTo?dateFrom:`${dateFrom} → ${dateTo}`;
+    renderLiveList([]);
+    return;
+  }
+
+  const layers = [];
+  points.forEach(p => {
+    const c = L.circleMarker([p.lat, p.lon], {
+      radius:      frpRadius(p.frp),
+      color:       'transparent',
+      fillColor:   frpColor(p.frp),
+      fillOpacity: 0.85,
+      weight:      0,
+    });
+    const timeStr = p.time ? p.time.slice(0,2)+':'+p.time.slice(2) : '—';
+    c.bindTooltip(
+      `<b>${p.date} ${timeStr} UTC</b><br>FRP: <b>${p.frp} MW</b><br>${p.src} / ${p.sat}`,
+      {sticky: true}
+    );
+    c.on('click', () => showLiveDetail(p));
+    layers.push(c);
+  });
+
+  LIVE_LAYER = L.layerGroup(layers).addTo(LIVE_MAP);
+
+  // KPIs
+  const frps = points.map(p => p.frp);
+  const fmax = Math.max(...frps).toFixed(1);
+  const fmean= (frps.reduce((s,v)=>s+v,0)/frps.length).toFixed(1);
+  document.getElementById('lk-count').textContent    = points.length.toLocaleString('ro-RO');
+  document.getElementById('lk-frp-max').textContent  = fmax;
+  document.getElementById('lk-frp-mean').textContent = fmean;
+  document.getElementById('lk-period').textContent   = dateFrom===dateTo?dateFrom:`${dateFrom} → ${dateTo}`;
+
+  renderLiveList(points);
+
+  // Zoom pe puncte
+  if (layers.length > 0) {
+    try { LIVE_MAP.fitBounds(LIVE_LAYER.getBounds(), {padding:[30,30]}); } catch(e){}
+  }
+}
+
+// ── Render grilă arhivă ───────────────────────────────────────────────────
+function renderArchiveGrid(cells, dateFrom, dateTo) {
+  if (LIVE_LAYER) { LIVE_MAP.removeLayer(LIVE_LAYER); LIVE_LAYER=null; }
+
+  // Folosim grid 0.1° din fires_data
+  if (!D || !D.grid) {
+    document.getElementById('live-status').textContent += ' — grid indisponibil';
+    return;
+  }
+
+  // Filtrăm grid-ul pe baza celulelor heatmap active
+  const activeLayers = new Set(cells.map(c => `${c.YEAR}-${c.MONTH}`));
+  const relevantGrid = D.grid; // afișăm tot grid-ul cu transparență redusă
+  const maxCount = Math.max(...relevantGrid.map(r=>r.count), 1);
+
+  const layers = [];
+  relevantGrid.forEach(r => {
+    if (!r.count) return;
+    const t = Math.sqrt(r.count / maxCount);
+    const rect = L.rectangle(
+      [[r.LAT_BIN-.05, r.LON_BIN-.05],[r.LAT_BIN+.05, r.LON_BIN+.05]],
+      { color:'transparent', fillColor:fireHex(t), fillOpacity:.15+.5*t, weight:0 }
+    );
+    rect.bindTooltip(
+      `<b>${r.count.toLocaleString('ro-RO')} detecții</b><br>FRP mediu: ${r.frp_mean} MW`,
+      {sticky:true}
+    );
+    layers.push(rect);
+  });
+
+  LIVE_LAYER = L.layerGroup(layers).addTo(LIVE_MAP);
+
+  document.getElementById('lk-count').textContent    = cells.reduce((s,c)=>s+c.count,0).toLocaleString('ro-RO');
+  document.getElementById('lk-frp-max').textContent  = '—';
+  document.getElementById('lk-frp-mean').textContent = '—';
+  document.getElementById('lk-period').textContent   = `${dateFrom} → ${dateTo}`;
+
+  document.getElementById('live-list-title').textContent = 'Celule active (grilă arhivă)';
+  document.getElementById('live-list').innerHTML =
+    '<div style="font-size:.68rem;color:var(--muted);padding:.5rem 0">Mod arhivă: datele sunt agregate pe grilă 0.1°.<br>Selectează o dată din ultimele 5 zile pentru puncte individuale.</div>';
+}
+
+// ── Lista top FRP ─────────────────────────────────────────────────────────
+function renderLiveList(points) {
+  const titleEl = document.getElementById('live-list-title');
+  const listEl  = document.getElementById('live-list');
+  titleEl.textContent = 'Top detecții după FRP';
+
+  if (!points.length) {
+    listEl.innerHTML = '<div style="font-size:.68rem;color:var(--muted);padding:.5rem 0">Nicio detecție în perioada selectată.</div>';
+    return;
+  }
+
+  const top = [...points].sort((a,b) => b.frp - a.frp).slice(0,15);
+  listEl.innerHTML = top.map(p => {
+    const timeStr = p.time ? p.time.slice(0,2)+':'+p.time.slice(2) : '';
+    return `<div class="live-row" onclick="showLiveDetail(${JSON.stringify(p).replace(/'/g, '&#39;')})">
+      <div class="live-row-dot" style="background:${frpColor(p.frp)}"></div>
+      <div class="live-row-info">
+        <div>${p.src} / ${p.sat} ${p.dn==='D'?'☀':'🌙'}</div>
+        <div class="live-row-date">${p.date} ${timeStr} UTC</div>
+      </div>
+      <div class="live-row-frp">${p.frp} MW</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Detalii punct ─────────────────────────────────────────────────────────
+function showLiveDetail(p) {
+  const timeStr = p.time ? p.time.slice(0,2)+':'+p.time.slice(2)+' UTC' : '—';
+  const dnLabel = p.dn === 'D' ? '☀ Zi' : '🌙 Noapte';
+  document.getElementById('live-detail-text').innerHTML =
+    `<div class="big">${p.frp} MW</div>` +
+    `<div style="color:var(--muted);font-size:.62rem;margin-bottom:.5rem">Fire Radiative Power</div>` +
+    `Data: <b>${p.date}</b><br>` +
+    `Ora: <b>${timeStr}</b><br>` +
+    `Județ: <b>${p.jud||'—'}</b><br>` +
+    `Sursă: <b>${p.src}</b> · Satelit: <b>${p.sat}</b><br>` +
+    `Moment: <b>${dnLabel}</b><br>` +
+    `<div style="margin-top:.4rem;font-size:.63rem;color:var(--muted)">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div>`;
+
+  // Centrăm harta pe punct
+  if (LIVE_MAP) LIVE_MAP.setView([p.lat, p.lon], Math.max(LIVE_MAP.getZoom(), 9));
+}
+// ── Tooltip sistem ──
 const TOOLTIPS = {
-  'FRP maxim': '<strong>FRP Maxim</strong>: Cea mai mare valoare de Fire Radiative Power. Indică intensitatea maximă a unui foc.',
-  'FRP': '<strong>Fire Radiative Power</strong>: Energia radiată de foc, măsurată în MW. Peste 50MW indică foc activ intens.',
-  'MODIS': '<strong>MODIS</strong>: Senzor NASA (1km) cu date din 2000.',
-  'VIIRS SNPP': '<strong>VIIRS</strong>: Senzor modern (375m) mult mai precis.',
-  'detecție': '<strong>Detecție</strong>: Un pixel termic identificat de satelit ca fiind anomalie de temperatură.',
-  'heatmap': '<strong>Heatmap</strong>: Densitatea detecțiilor pe luni. Culorile calde indică activitate crescută.',
-  'dist-frp': '<strong>Distribuție FRP</strong>: Arată frecvența intensităților. Majoritatea focurilor sunt sub 50 MW.',
-  'top-frp': '<strong>Top detecții</strong>: Cele mai puternice anomalii termice înregistrate în baza de date.'
+  'FRP maxim':     '<strong>FRP Maxim</strong>Cea mai mare valoare de Fire Radiative Power înregistrată. Indică intensitatea maximă a unui incendiu.',
+  'FRP median':    '<strong>FRP Median</strong>Valoarea tipică de energie radiată. Util pentru a compara intensitatea medie între județe sau ani.',
+  'FRP':           '<strong>Fire Radiative Power</strong>Energia radiată de foc, măsurată în MW. Un incendiu de pădure activ depășește de obicei 50 MW.',
+  'MODIS':         '<strong>MODIS</strong>Senzor NASA cu rezoluție de 1 km. Operațional din 2000, oferă cea mai lungă serie temporală.',
+  'VIIRS SNPP':    '<strong>VIIRS SNPP</strong>Senzor cu rezoluție de 375 m, operațional din 2012. Detectează incendii mai mici decât MODIS.',
+  'NOAA-20':       '<strong>NOAA-20</strong>Satelit lansat în 2017, echipat cu VIIRS. Rezoluție 375 m, completează acoperirea SNPP.',
+  'NOAA-21':       '<strong>NOAA-21</strong>Cel mai nou satelit din rețea, lansat în 2022. Rezoluție 375 m.',
+  'detecție':      '<strong>Detecție termică</strong>Nu este un incendiu confirmat — este un pixel cu temperatură anormal de ridicată detectat din satelit. Același foc poate genera mai multe detecții.',
+  'detecții':      '<strong>Detecții termice</strong>Nu sunt incendii confirmate — sunt pixeli cu temperatură anormal de ridicată. Același foc poate apărea de mai multe ori (sateliți diferiți, treceri multiple).',
+  'FIRMS':             '<strong>FIRMS</strong>Fire Information for Resource Management System — sistemul NASA care procesează și distribuie datele de detecție a incendiilor în timp real.',
+  'total-detectii':    '<strong>Total detecții</strong>Numărul total de pixeli termici detectați din satelit în perioada și zona selectată. Nu reprezintă numărul de incendii — același foc poate genera zeci de detecții.',
+  'cel-mai-activ-an':  '<strong>Cel mai activ an</strong>Anul cu cele mai multe detecții termice în perioada și zona selectată.',
+  'detectii-nocturne': '<strong>Detecții nocturne</strong>Procentul detecțiilor înregistrate noaptea (01:30 și 13:30 ora locală pentru MODIS; 01:30 și 13:30 pentru VIIRS). Incendiile nocturne sunt adesea mai intense — FRP mai mare, fum mai puțin dispersat.',
+  'luna-de-varf':      '<strong>Luna de vârf</strong>Luna calendaristică cu cele mai multe detecții în perioada selectată. În România, vârful tipic e martie–aprilie (vegetație uscată) și iulie–august (secetă).',
+  'ev-anuala':         '<strong>Evoluție anuală</strong>Barele arată numărul de detecții per an, colorate pe satelit. Linia portocalie suprapusă arată FRP mediu anual (MW) — intensitatea tipică a incendiilor în acel an.',
+  'heatmap':           '<strong>Heatmap lunar</strong>Fiecare celulă = numărul de detecții într-o lună dintr-un an. Culoarea mai intensă = mai multe detecții. Util pentru a identifica pattern-uri sezoniere și anomalii.',
+  'dist-lunara':       '<strong>Distribuție lunară</strong>Agregarea tuturor detecțiilor pe luni calendaristice, indiferent de an. Arată sezonalitatea tipică a incendiilor în zona selectată.',
+  'sezonalitate':      '<strong>Sezonalitate — zile ale anului</strong>Fiecare punct reprezintă o decadă (~10 zile). Compară activitatea din perioada selectată cu media națională istorică. Util pentru a identifica dacă un an a fost atipic.',
+  'zi-noapte':         '<strong>Zi vs. Noapte</strong>Distribuția detecțiilor între trecerile diurne și nocturne ale sateliților. Sateliții trec de ~2 ori/zi — o trecere de zi, una de noapte.',
+  'dist-frp':          '<strong>Distribuție FRP</strong>Histograma energiei radiate (MW) pentru toate detecțiile. Majoritatea incendiilor sunt de intensitate mică (sub 50 MW). Valorile peste 200 MW indică incendii severe de vegetație.',
+  'dist-confidence':   '<strong>Distribuție Confidence & Brightness</strong>Confidence = încrederea algoritmului că detecția e un incendiu real (low/nominal/high). Brightness = temperatura pixelului în grade Kelvin (K) — un foc activ depășește de obicei 320K, incendiile severe pot atinge 500–800K. Valorile ridicate de brightness corelează cu FRP mare.',
+  'info-tooltip':      '<strong>Tooltipuri interactive</strong>Termenii tehnici subliniați cu portocaliu au explicații. Treci cu mouse-ul peste ei pentru definiții.',
+  'top-frp': '<strong>Top 20 detecții după FRP</strong>Cele mai intense detecții termice înregistrate, sortate după Fire Radiative Power (MW). Coloana Brightness arată temperatura pixelului în grade Kelvin (K) — valorile peste 400K indică incendii severe, peste 600K sunt excepționale și asociate cu incendii de pădure majore.',
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   const ttBox = document.getElementById('tt-box');
-  if(!ttBox) return;
   document.addEventListener('mouseover', e => {
     const el = e.target.closest('[data-tt]');
-    if (el && TOOLTIPS[el.dataset.tt]) {
-      ttBox.innerHTML = TOOLTIPS[el.dataset.tt]; ttBox.classList.add('visible');
-    }
+    if (!el) return;
+    const key = el.dataset.tt;
+    if (!TOOLTIPS[key]) return;
+    ttBox.innerHTML = TOOLTIPS[key];
+    ttBox.classList.add('visible');
   });
   document.addEventListener('mousemove', e => {
-    if(!ttBox.classList.contains('visible')) return;
-    ttBox.style.left = (e.clientX + 15) + 'px'; ttBox.style.top = (e.clientY + 15) + 'px';
+    if (!ttBox.classList.contains('visible')) return;
+    const x = e.clientX + 14;
+    const y = e.clientY + 14;
+    ttBox.style.left = (x + 280 > window.innerWidth ? e.clientX - 294 : x) + 'px';
+    ttBox.style.top  = (y + 120 > window.innerHeight ? e.clientY - 130 : y) + 'px';
   });
   document.addEventListener('mouseout', e => {
-     if(e.target.closest('[data-tt]')) ttBox.classList.remove('visible');
+    if (!e.target.closest('[data-tt]')) return;
+    ttBox.classList.remove('visible');
   });
 });
-
-// ═══════════════════════════════════════════════════════
-// EXPORT HARTĂ
-// ═══════════════════════════════════════════════════════
 function buildMapTitle() {
     const layers = {'heat':'Heatmap densitate', 'grid':'Grilă FRP', 'choro':'Județe', 'points':'Puncte', 'uat':'UAT-uri'};
     const metrics = {'count':'Nr. detecții', 'frp_mean':'FRP mediu', 'frp_max':'FRP maxim', 'frp_sum':'FRP total'};
     
-    const lName = layers[ALAYER] || ALAYER;
+    const lName = typeof ALAYER !== 'undefined' ? (layers[ALAYER] || ALAYER) : 'Hartă';
     const metricEl = document.getElementById('m-metric');
     const mName = metricEl ? (metrics[metricEl.value] || '') : '';
     const ySlider = document.getElementById('yslider');
-    const period = TMODE === 'year' && ySlider ? ySlider.value : `${F.yf}-${F.yt}`;
+    const period = (typeof TMODE !== 'undefined' && TMODE === 'year' && ySlider) ? ySlider.value : (typeof F !== 'undefined' ? `${F.yf}-${F.yt}` : '');
     
     let loc = 'Național';
-    if (SEL_JUD1 && window.JUD_NAMES) loc = window.JUD_NAMES[SEL_JUD1] || SEL_JUD1;
-    
-    return `${lName} · ${mName ? mName + ' · ' : ''}${loc} · ${period}`;
+    if (typeof SEL_JUD1 !== 'undefined' && SEL_JUD1 && typeof JUD_NAMES !== 'undefined') {
+        loc = JUD_NAMES[SEL_JUD1] || SEL_JUD1;
+    }
+    return `${lName} ${mName ? '· ' + mName + ' ' : ''}· ${loc} · ${period}`;
 }
 
 function exportMap() {
     const mapContainer = document.getElementById('map');
-    if (!mapContainer) {
-        alert("Eroare: Containerul hărții nu există.");
-        return;
-    }
+    if (!mapContainer) return;
     
     const title = buildMapTitle();
     const btn = document.querySelector('button[onclick="exportMap()"]');
     const oldHtml = btn ? btn.innerHTML : "↓ PNG hartă";
     if (btn) btn.innerHTML = "⏳ Se generează...";
 
-    // Așteptăm 800ms să ne asigurăm că animațiile hărții s-au terminat
+    // Așteptăm să se randeze complet canvas-ul hărții
     setTimeout(() => {
         html2canvas(mapContainer, {
             useCORS: true, 
@@ -1618,7 +2076,6 @@ function exportMap() {
             const PAD = 20, HEADER_H = 75, FOOTER_H = 65;
             const out = document.createElement('canvas');
             
-            // Asigurăm lățime suficientă pentru text
             const finalWidth = Math.max(canvas.width, 500);
             out.width = finalWidth;
             out.height = canvas.height + HEADER_H + FOOTER_H; 
@@ -1642,7 +2099,7 @@ function exportMap() {
             const legX = PAD, legY = out.height - 30;
             
             const lg = ctx.createLinearGradient(legX, 0, legX + legW, 0);
-            if (ALAYER === 'uat' || ALAYER === 'choro') {
+            if (typeof ALAYER !== 'undefined' && (ALAYER === 'uat' || ALAYER === 'choro')) {
                 lg.addColorStop(0,'#f0f0f0'); lg.addColorStop(0.2,'#feb24c'); lg.addColorStop(0.5,'#fd8d3c'); lg.addColorStop(0.8,'#e31a1c'); lg.addColorStop(1,'#b10026');
             } else {
                 lg.addColorStop(0,'#1a2540'); lg.addColorStop(0.35,'#ff4d1c'); lg.addColorStop(0.65,'#ff8c42'); lg.addColorStop(1,'#ffd166');
@@ -1658,7 +2115,7 @@ function exportMap() {
             const maxVal = maxEl ? maxEl.innerText : 'Maxim';
             ctx.textAlign = 'right'; ctx.fillText(maxVal, legX + legW, legY - 8);
 
-            // Watermark (Credit) în dreapta jos
+            // Watermark
             ctx.fillStyle = 'rgba(122, 143, 173, 0.5)'; ctx.font = '11px Segoe UI';
             ctx.textAlign = 'right'; ctx.fillText('Sursa: NASA FIRMS · Procesare auto-update', out.width - PAD, out.height - 20);
 
@@ -1676,30 +2133,6 @@ function exportMap() {
         });
     }, 800); 
 }
-
-// ═══════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════
-function updateHeaderBadges() {
-  const total = window.__FIRES__.by_year_src.reduce((s,r)=>s + ['MODIS','SNPP','NOAA20','NOAA21'].reduce((ss,k)=>ss+(r[k]||0),0), 0);
-  const badgeTotal = document.getElementById('badge-total');
-  if(badgeTotal) badgeTotal.textContent = total.toLocaleString('ro-RO') + ' detecții';
-  
-  const d = new Date();
-  const badgeUpdate = document.getElementById('badge-update');
-  if(badgeUpdate) badgeUpdate.textContent = 'Actualizat ' + d.toLocaleDateString('ro-RO');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    if(typeof initSelects === 'function') initSelects();
-    updateHeaderBadges();
-    if(typeof updateCharts === 'function') updateCharts();
-    if(typeof buildFRPChart === 'function') buildFRPChart(); 
-    if(typeof buildConfChart === 'function') buildConfChart(); 
-    if(typeof buildTable === 'function') buildTable();
-    setTimeout(() => { if(typeof loadUATData === 'function') loadUATData().catch(()=>{}); }, 2000);
-});
-window.addEventListener('resize', () => { if(typeof buildHeatmap === 'function') setTimeout(buildHeatmap, 100); });
 </script>
 
 <div id="tt-box"></div>
