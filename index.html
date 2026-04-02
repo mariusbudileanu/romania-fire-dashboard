@@ -903,18 +903,17 @@ document.getElementById('fstatus').textContent=total.toLocaleString('ro-RO')+
 // PANOU STATISTICI JUDEȚ
 // ═══════════════════════════════════════════════════════
 function updateJudetStats() {
-  const panel = document.getElementById('jud-stats');
-  if(!SEL_JUD1 || SEL_JUD2) { panel.style.display='none'; return; }
-  panel.style.display = 'block';
+  const panel=document.getElementById('jud-stats');
+  if(!SEL_JUD1||SEL_JUD2){panel.style.display='none';return;}
+  panel.style.display='block';
 
-  // LINIA ADĂUGATĂ PENTRU REPARAȚIE:
-  const jRow = __FIRES__.by_judet.find(j => j.JUDET_CODE === SEL_JUD1);
+  const judTotal = __FIRES__.by_judet;
+  const jRow = judTotal.find(j=>j.JUDET_CODE===SEL_JUD1);
   if(!jRow) return;
 
   const ns=JT.national_stats||{mean_count:0,mean_frp_mean:0,mean_frp_max:0,mean_frp_sum:0};
   document.getElementById('jud-stats-title').textContent=JUD_NAMES[SEL_JUD1]+' — statistici vs. media națională';
 
-  // Trend
   const series=getJudYearSeries(SEL_JUD1);
   const xs=series.map(r=>r.YEAR), ys=series.map(r=>r.count);
   const reg=linReg(xs,ys);
@@ -959,7 +958,6 @@ function updateJudetStats() {
     </div>
   `;
 }
-
 // ═══════════════════════════════════════════════════════
 // CHART: EVOLUȚIE ANUALĂ
 // ═══════════════════════════════════════════════════════
@@ -967,26 +965,24 @@ function buildYearChart() {
   const subEl=document.getElementById('cy-sub');
   const legEl=document.getElementById('cy-leg');
 
-if(SEL_JUD1) {
-    // REPARAȚIE: Forțăm axa X să fie completă pentru toți anii din filtru
+  if(SEL_JUD1) {
     const ys = []; for(let y = F.yf; y <= F.yt; y++) ys.push(y);
-    const ds = [];
-
-    [SEL_JUD1, SEL_JUD2].filter(Boolean).forEach((code, ci) => {
-      // REPARAȚIE: Filtrăm datele DOAR pentru județul selectat din sursa principală
+    const ds=[];
+    
+    [SEL_JUD1,SEL_JUD2].filter(Boolean).forEach((code,ci)=>{
       const series = __FIRES__.judet_year.filter(r => r.JUDET_CODE === code);
-      const byYear = {}; series.forEach(r => byYear[r.YEAR] = r.count);
-
+      const byYear={}; series.forEach(r=>byYear[r.YEAR]=r.count);
+      
       ds.push({
-        label: JUD_NAMES[code],
-        data: ys.map(y => byYear[y] || 0),
-        borderColor: JUD_COLORS[ci], backgroundColor: JUD_COLORS[ci]+'33',
-        borderWidth: 2, pointRadius: 3, tension: .3, fill: false, order: 1
+        label:JUD_NAMES[code],
+        data:ys.map(y => byYear[y] || 0),
+        borderColor:JUD_COLORS[ci],backgroundColor:JUD_COLORS[ci]+'33',
+        borderWidth:2,pointRadius:3,tension:.3,fill:false,order:1,
       });
-      // Linie trend
-      const xs=series.map(r=>r.YEAR), cnts=series.map(r=>r.count);
-      const reg=linReg(xs.filter((_,i)=>xs[i]>=F.yf&&xs[i]<=F.yt),
-                       cnts.filter((_,i)=>xs[i]>=F.yf&&xs[i]<=F.yt));
+      
+      const xs_reg=series.map(r=>r.YEAR), cnts_reg=series.map(r=>r.count);
+      const reg=linReg(xs_reg.filter((_,i)=>xs_reg[i]>=F.yf&&xs_reg[i]<=F.yt),
+                       cnts_reg.filter((_,i)=>xs_reg[i]>=F.yf&&xs_reg[i]<=F.yt));
       if(Math.abs(reg.slope)>30) {
         ds.push({
           label:`Trend ${JUD_NAMES[code]}`,
@@ -1004,7 +1000,6 @@ if(SEL_JUD1) {
         plugins:{legend:{labels:{color:'#7a8fad',boxWidth:12,padding:10}}},
         scales:{x:{grid:{color:GC}},y:{grid:{color:GC},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
   } else {
-    // Mod național — bare stacked + linie FRP
     const rows=fYears(),yrs=rows.map(r=>r.YEAR);
     const fmap={};D.frp_year.forEach(r=>fmap[r.year]=r.frp_mean);
     const ds=['MODIS','SNPP','NOAA20','NOAA21'].map(s=>({
