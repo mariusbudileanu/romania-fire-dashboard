@@ -2044,17 +2044,38 @@ function buildMapTitle() {
     const layers = {'heat':'Heatmap densitate', 'grid':'Grilă FRP', 'choro':'Județe', 'points':'Puncte', 'uat':'UAT-uri'};
     const metrics = {'count':'Nr. detecții', 'frp_mean':'FRP mediu', 'frp_max':'FRP maxim', 'frp_sum':'FRP total'};
     
+    // 1. Stratul selectat
     const lName = typeof ALAYER !== 'undefined' ? (layers[ALAYER] || ALAYER) : 'Hartă';
+    
+    // 2. Metrica
     const metricEl = document.getElementById('m-metric');
     const mName = metricEl ? (metrics[metricEl.value] || '') : '';
-    const ySlider = document.getElementById('yslider');
-    const period = (typeof TMODE !== 'undefined' && TMODE === 'year' && ySlider) ? ySlider.value : (typeof F !== 'undefined' ? `${F.yf}-${F.yt}` : '');
     
-    let loc = 'Național';
-    if (typeof SEL_JUD1 !== 'undefined' && SEL_JUD1 && typeof JUD_NAMES !== 'undefined') {
-        loc = JUD_NAMES[SEL_JUD1] || SEL_JUD1;
+    // 3. Perioada (citește slider-ul dacă e activ, altfel anii globali)
+    let period = '';
+    if (typeof TMODE !== 'undefined' && TMODE === 'year') {
+        const ySlider = document.getElementById('yslider');
+        if (ySlider) period = ySlider.value;
+    } else {
+        const yf = document.getElementById('f-yf');
+        const yt = document.getElementById('f-yt');
+        if (yf && yt) period = `${yf.value}-${yt.value}`;
+        else if (typeof F !== 'undefined') period = `${F.yf}-${F.yt}`;
     }
-    return `${lName} ${mName ? '· ' + mName + ' ' : ''}· ${loc} · ${period}`;
+    
+    // 4. Locația (Național default, dar ia județul STRICT dacă ești pe stratul UAT)
+    let loc = 'Național';
+    if (typeof ALAYER !== 'undefined' && ALAYER === 'uat') {
+        const uatJudEl = document.getElementById('uat-jud');
+        if (uatJudEl && uatJudEl.value) {
+            loc = typeof window.JUD_NAMES !== 'undefined' ? (window.JUD_NAMES[uatJudEl.value] || uatJudEl.value) : uatJudEl.value;
+        }
+    }
+    
+    // Asamblează titlul inteligent, eliminând spațiile goale
+    const parts = [lName, mName, loc, period].filter(Boolean);
+    return parts.join(' · ');
+}
 }
 
 function exportMap() {
