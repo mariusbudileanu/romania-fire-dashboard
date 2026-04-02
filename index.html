@@ -118,7 +118,7 @@ select:focus,select:hover{border-color:rgba(76,201,240,.4)}
 .lbtn.active{background:rgba(76,201,240,.18);border-color:rgba(76,201,240,.5);color:var(--blue)}
 .lbtn:hover{border-color:rgba(76,201,240,.35);color:var(--text)}
 .mgrid{display:grid;grid-template-columns:3fr 1fr;gap:.75rem}
-#map{height:560px;border-radius:var(--r);border:1px solid var(--border)}
+#map{height:650px;border-radius:var(--r);border:1px solid var(--border)}
 .mside{display:flex;flex-direction:column;gap:.75rem}
 .scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem}
 .syear{font-size:1.5rem;font-weight:800;color:var(--accent2);line-height:1}
@@ -1343,11 +1343,14 @@ let ALAYER='heat', TMODE='all', PLAYIV=null;
 
 function initMap() {
   MAP = L.map('map', {
-      center: [45.0, 25.0],
-      zoom: 7,
+      center: [45.95, 24.96], // Coordonate ajustate mai spre inima țării
+      zoom: 6.5,              // Un pic mai departe decât 7
+      zoomSnap: 0.5,          // Permite zoom-ul cu virgulă în Leaflet
       attributionControl: false,
-      preferCanvas: true // <- ACEASTA e setarea care previne defazarea poligoanelor
-  })
+      preferCanvas: true      // Păstrează asta pentru a nu defaza exportul!
+  });
+  // ... restul funcției rămâne la fel (DARK_TILES, etc.)
+}
 
   DARK_TILES=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     {subdomains:'abcd',maxZoom:18});
@@ -2044,40 +2047,87 @@ document.addEventListener('DOMContentLoaded', () => {
     ttBox.classList.remove('visible');
   });
 });
+// Funcția care generează titlul dinamic
+function buildMapTitle() {
+    const layers = {'heat':'Heatmap densitate', 'grid':'Grilă FRP', 'choro':'Județe', 'points':'Puncte', 'uat':'UAT-uri'};
+    const metrics = {'count':'Nr. detecții', 'frp_mean':'FRP mediu', 'frp_max':'FRP maxim', 'frp_sum':'FRP total'};
+    
+    const lName = layers[ALAYER] || ALAYER;
+    const metricEl = document.getElementById('m-metric');
+    const mName = metricEl ? (metrics[metricEl.value] || '') : '';
+    const period = TMODE === 'year' ? document.getElementById('yslider').value : `${F.yf}-${F.yt}`;
+    
+    let loc = 'Național';
+    if (SEL_JUD1) loc = JUD_NAMES[SEL_JUD1] || SEL_JUD1;
+    
+    return `${lName} · ${mName ? mName + ' · ' : ''}${loc} · ${period}`;
+}
+
+// Funcția de export completă (cu titlu și legendă)
 function exportMap() {
     const mapContainer = document.getElementById('map');
     if (!mapContainer) return;
     
-    const title = (typeof buildMapTitle === 'function') ? buildMapTitle() : "România Fire Watch";
+    const title = buildMapTitle();
     const btn = document.querySelector('button[onclick="exportMap()"]');
     const oldHtml = btn ? btn.innerHTML : "↓ PNG hartă";
     if (btn) btn.innerHTML = "⏳ Se generează...";
 
-    // Așteptăm 800ms ca să fim siguri că harta a terminat de randat Canvas-ul
     setTimeout(() => {
         html2canvas(mapContainer, {
             useCORS: true, 
             allowTaint: false,
             backgroundColor: '#0a0e17'
         }).then(canvas => {
+            const PAD = 20, HEADER_H = 75, FOOTER_H = 65;
             const out = document.createElement('canvas');
-            const PAD = 16, HEADER_H = 70;
             
-            const finalWidth = Math.max(canvas.width, 350);
+            // Asigurăm lățime suficientă pentru text
+            const finalWidth = Math.max(canvas.width, 500);
             out.width = finalWidth;
-            out.height = canvas.height + HEADER_H;
+            out.height = canvas.height + HEADER_H + FOOTER_H; // Adăugăm spațiu și jos pentru legendă
             const ctx = out.getContext('2d');
 
+            // Fundal document
             ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, out.width, out.height);
-            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px Segoe UI, sans-serif'; 
-            ctx.fillText('România Fire Watch', PAD, 30);
-            ctx.fillStyle = '#ff6b35'; ctx.font = '14px Segoe UI, sans-serif'; 
-            ctx.fillText(title, PAD, 55);
 
-            // Centrare exactă
+            // Antet (Titluri)
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px Segoe UI, sans-serif'; 
+            ctx.fillText('România Fire Watch', PAD, 35);
+            ctx.fillStyle = '#ff6b35'; ctx.font = '15px Segoe UI, sans-serif'; 
+            ctx.fillText(title, PAD, 60);
+
+            // Desenăm Harta
             const leftOffset = (out.width - canvas.width) / 2;
             ctx.drawImage(canvas, leftOffset, HEADER_H);
 
+            // --- DESENĂM LEGENDA ÎN SUBSOL ---
+            const legW = 250, legH = 10;
+            const legX = PAD, legY = out.height - 30;
+            
+            // Gradientul legendei (se adaptează la tema hărții)
+            const lg = ctx.createLinearGradient(legX, 0, legX + legW, 0);
+            if (ALAYER === 'uat' || ALAYER === 'choro') {
+                lg.addColorStop(0,'#f0f0f0'); lg.addColorStop(0.2,'#feb24c'); lg.addColorStop(0.5,'#fd8d3c'); lg.addColorStop(0.8,'#e31a1c'); lg.addColorStop(1,'#b10026');
+            } else {
+                lg.addColorStop(0,'#1a2540'); lg.addColorStop(0.35,'#ff4d1c'); lg.addColorStop(0.65,'#ff8c42'); lg.addColorStop(1,'#ffd166');
+            }
+            ctx.fillStyle = lg;
+            ctx.beginPath(); ctx.roundRect(legX, legY, legW, legH, 4); ctx.fill();
+
+            // Textul Min / Max pentru legendă
+            ctx.fillStyle = '#7a8fad'; ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'left'; ctx.fillText('Minim', legX, legY - 8);
+            
+            const maxEl = document.getElementById('leg-max');
+            const maxVal = maxEl ? maxEl.innerText : 'Maxim';
+            ctx.textAlign = 'right'; ctx.fillText(maxVal, legX + legW, legY - 8);
+
+            // Watermark (Credit) în dreapta jos
+            ctx.fillStyle = 'rgba(122, 143, 173, 0.5)'; ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'right'; ctx.fillText('Sursa: NASA FIRMS · Procesare auto-update', out.width - PAD, out.height - 20);
+
+            // Declanșăm descărcarea
             const a = document.createElement('a');
             const safeTitle = title.replace(/[^a-z0-9\s]/gi, '').replace(/\s+/g, '_').toLowerCase();
             a.download = `FireWatch_${safeTitle}.png`;
