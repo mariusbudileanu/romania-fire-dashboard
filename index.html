@@ -2049,7 +2049,7 @@ function exportMap() {
     const oldHtml = btn ? btn.innerHTML : "↓ PNG hartă";
     if (btn) btn.innerHTML = "⏳ Se generează...";
 
-    // Așteptăm 800ms să ne asigurăm că orice animație Leaflet sau de slider s-a terminat
+    // Așteptăm 800ms să ne asigurăm că animațiile hărții s-au terminat
     setTimeout(() => {
         html2canvas(mapContainer, {
             useCORS: true, 
@@ -2088,9 +2088,10 @@ function exportMap() {
             console.error("Eroare export:", err);
             if (btn) btn.innerHTML = "⚠ Eroare";
         });
-    }, 800); // 800 milisecunde buffer pentru randare
+    }, 800); 
 }
 </script>
- <div id="tt-box"></div>
+
+<div id="tt-box"></div>
 </body>
 </html>
