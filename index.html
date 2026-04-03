@@ -1444,7 +1444,10 @@ function buildHeatLayer(m){
   const data=getGridData(),vals=data.map(r=>mVal(r,m)),mx=Math.max(...vals,1);
   HLAYER=L.heatLayer(data.map(r=>[r.LAT_BIN||r.LAT2,r.LON_BIN||r.LON2,Math.sqrt(mVal(r,m)/mx)]),
     {radius:18,blur:20,maxZoom:10,gradient:{0:'#1a2540',.3:'#ff4d1c',.6:'#ff8c42',1:'#ffd166'}}).addTo(MAP);
-  updLegend(Math.round(mx),MUNITS[m]);
+updLegend(Math.round(mx), MUNITS[m], true);
+  if (selJ && UALAYER.getLayers().length > 0) {
+      MAP.fitBounds(UALAYER.getBounds());
+  }
 }
 
 function buildGridLayer(m){
