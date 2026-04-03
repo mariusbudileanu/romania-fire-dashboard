@@ -1317,15 +1317,14 @@ function hexA(h,a){
   return `rgba(${r},${g},${b},${a})`;
 }
 function updLegend(mx,unit,isLight=false) {
-  document.getElementById('leg-max').textContent=
-    typeof mx==='number'?mx.toLocaleString('ro-RO',{maximumFractionDigits:0})+(unit||''):mx;
-  document.getElementById('leg-mid').textContent=
-    typeof mx==='number'?(mx/2).toLocaleString('ro-RO',{maximumFractionDigits:0})+(unit||''):'';
-  const grad=document.getElementById('map-lgrad');
-  if(isLight){
-    grad.style.background='linear-gradient(90deg,#f0f0f0,#feb24c,#fd8d3c,#fc4e2a,#e31a1c,#b10026)';
-  } else {
-    grad.style.background='linear-gradient(90deg,#1a2540,#ff4d1c,#ff8c42,#ffd166)';
+  document.getElementById('leg-max').textContent=typeof mx==='number'?mx.toLocaleString('ro-RO')+(unit||''):mx;
+  document.getElementById('leg-mid').textContent=typeof mx==='number'?(mx/2).toLocaleString('ro-RO')+(unit||''):'';
+  const grad=document.getElementById('map-lgrad'); 
+  if(grad) {
+      // INVERSĂM SENSUL: de la roșu închis (minim) la alb/galben (maxim)
+      grad.style.background = isLight ? 
+          'linear-gradient(90deg,#b10026,#e31a1c,#fc4e2a,#fd8d3c,#feb24c,#f0f0f0)' : 
+          'linear-gradient(90deg,#1a2540,#ff4d1c,#ff8c42,#ffd166)';
   }
 }
 
@@ -1495,30 +1494,39 @@ function buildPointsLayer(m){
 }
 
 async function buildUatLayer(m){
-  const ok=await loadUATData();if(!ok)return;
-  if(UALAYER){MAP.removeLayer(UALAYER);UALAYER=null;}
-  const selJ=document.getElementById('uat-jud').value;
+  if(!MAP) return;
+  const ok=await loadUATData(); if(!ok) return;
+  const selJEl=document.getElementById('uat-jud');
+  const selJ = selJEl ? selJEl.value : '';
   const uatData=getUatDataFiltered(selJ);
-  const statsLk={};uatData.forEach(u=>statsLk[u.UAT_SIRUTA]=u);
-  const vals=uatData.map(u=>mVal(u,m)),mx=Math.max(...vals,1);
-  let feats=UAT_GEO.features;
-  if(selJ)feats=feats.filter(f=>f.properties.cc===selJ);
+  const statsLk={}; uatData.forEach(u=>statsLk[u.UAT_SIRUTA]=u);
+  const vals=uatData.map(u=>mVal(u,m)), mx=Math.max(...vals,1);
+  let feats=UAT_GEO.features; if(selJ) feats=feats.filter(f=>f.properties.cc===selJ);
 
-  const TS={'Municipiu resedinta de judet':'Municipiu (reșed.)','Municipiu, altul decat resedinta de judet':'Municipiu',
-    'Oras':'Oraș','Comuna':'Comună','Sectoarele municipiului Bucuresti':'Sector București'};
-
-  // Pe fond deschis folosim o paletă diferită (YlOrRd)
   function lightFireHex(t){
-    const stops=[[0,[240,240,240]],[.2,[254,204,92]],[.45,[253,141,60]],[.7,[240,59,32]],[1,[177,0,38]]];
+    // INVERSAT: 0 (Minim) = Roșu închis, 1 (Maxim) = Deschis/Alb
+    const stops=[[0,[177,0,38]],[.3,[240,59,32]],[.55,[253,141,60]],[.8,[254,204,92]],[1,[240,240,240]]];
     for(let i=1;i<stops.length;i++){
       if(t<=stops[i][0]){
         const f=(t-stops[i-1][0])/(stops[i][0]-stops[i-1][0]),a=stops[i-1][1],b=stops[i][1];
         return '#'+[0,1,2].map(j=>Math.round(a[j]+(b[j]-a[j])*f).toString(16).padStart(2,'0')).join('');
       }
-    }
-    return '#b10026';
+    } return '#f0f0f0';
   }
 
+  UALAYER=L.geoJSON({type:'FeatureCollection',features:feats},{
+    style:f=>{ const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
+      // Fallback-ul pentru UAT fără foc devine '#1f2430' (închis) ca să contrasteze cu lumina de la maxim
+      return{color:'rgba(80,80,80,.4)',weight:.7,fillColor:v>0?lightFireHex(t):'#1f2430',fillOpacity:v>0?.2+.7*t:.15};},
+    onEachFeature:(f,layer)=>{
+      const p=f.properties,row=statsLk[p.siruta],v=row?mVal(row,m):null;
+      layer.bindTooltip(`<b>${p.name}</b><br>${MLABELS[m]}: <b>${v!==null?fmtVal(v,m):'fără date'}</b>`,{sticky:true});
+      layer.on('click',()=>{ if(row) showUATInfo(row,p,m); });
+    }
+  }).addTo(MAP);
+  updLegend(Math.round(mx),MUNITS[m],true);
+  if(selJ && UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds());
+}
   UALAYER=L.geoJSON({type:'FeatureCollection',features:feats},{
     style:f=>{
       const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
@@ -2086,7 +2094,6 @@ function exportMap() {
     const oldHtml = btn ? btn.innerHTML : "↓ PNG hartă";
     if (btn) btn.innerHTML = "⏳ Se generează...";
 
-    // Așteptăm să se randeze complet canvas-ul hărții
     setTimeout(() => {
         html2canvas(mapContainer, {
             useCORS: true, 
@@ -2101,16 +2108,12 @@ function exportMap() {
             out.height = canvas.height + HEADER_H + FOOTER_H; 
             const ctx = out.getContext('2d');
 
-            // Fundal document
             ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, out.width, out.height);
-
-            // Antet (Titluri)
             ctx.fillStyle = '#ffffff'; ctx.font = 'bold 22px Segoe UI, sans-serif'; 
             ctx.fillText('România Fire Watch', PAD, 35);
             ctx.fillStyle = '#ff6b35'; ctx.font = '15px Segoe UI, sans-serif'; 
             ctx.fillText(title, PAD, 60);
 
-            // Desenăm Harta centrată
             const leftOffset = (out.width - canvas.width) / 2;
             ctx.drawImage(canvas, leftOffset, HEADER_H);
 
@@ -2119,9 +2122,11 @@ function exportMap() {
             const legX = PAD, legY = out.height - 30;
             
             const lg = ctx.createLinearGradient(legX, 0, legX + legW, 0);
-            if (typeof ALAYER !== 'undefined' && (ALAYER === 'uat' || ALAYER === 'choro')) {
-                lg.addColorStop(0,'#f0f0f0'); lg.addColorStop(0.2,'#feb24c'); lg.addColorStop(0.5,'#fd8d3c'); lg.addColorStop(0.8,'#e31a1c'); lg.addColorStop(1,'#b10026');
+            if (typeof ALAYER !== 'undefined' && ALAYER === 'uat') {
+                // Legenda pentru UAT (Inversată: Roșu închis -> Alb luminos)
+                lg.addColorStop(0,'#b10026'); lg.addColorStop(0.2,'#e31a1c'); lg.addColorStop(0.5,'#fd8d3c'); lg.addColorStop(0.8,'#feb24c'); lg.addColorStop(1,'#f0f0f0');
             } else {
+                // Legenda pentru toate celelalte (Județe, Grilă, Puncte, Heatmap)
                 lg.addColorStop(0,'#1a2540'); lg.addColorStop(0.35,'#ff4d1c'); lg.addColorStop(0.65,'#ff8c42'); lg.addColorStop(1,'#ffd166');
             }
             ctx.fillStyle = lg;
@@ -2139,7 +2144,6 @@ function exportMap() {
             ctx.fillStyle = 'rgba(122, 143, 173, 0.5)'; ctx.font = '11px Segoe UI';
             ctx.textAlign = 'right'; ctx.fillText('Sursa: NASA FIRMS · Procesare auto-update', out.width - PAD, out.height - 20);
 
-            // Declanșăm descărcarea
             const a = document.createElement('a');
             const safeTitle = title.replace(/[^a-z0-9\s]/gi, '').replace(/\s+/g, '_').toLowerCase();
             a.download = `FireWatch_${safeTitle}.png`;
