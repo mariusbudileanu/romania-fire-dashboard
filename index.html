@@ -1343,13 +1343,19 @@ let HLAYER,GLAYER,CLAYER,PLAYER,UALAYER;
 let ALAYER='heat', TMODE='all', PLAYIV=null;
 
 // ═══════════════════════════════════════════════════════
-// SMART LINKS (URL STATE MANAGER)
+// SMART LINKS (URL STATE MANAGER) V2
 // ═══════════════════════════════════════════════════════
 
-// 1. Funcția care scrie în URL la fiecare click
+// Variabilă care reține pe ce tab suntem în acest moment
+window.CURRENT_TAB = '';
+
+// 1. Funcția care scrie în URL
 function updateURLState() {
     const params = new URLSearchParams();
     
+    // Salvăm tab-ul activ
+    if (window.CURRENT_TAB) params.set('tab', window.CURRENT_TAB);
+
     // Setări Hartă
     if (typeof ALAYER !== 'undefined') params.set('layer', ALAYER);
     const metricEl = document.getElementById('m-metric');
@@ -1368,24 +1374,22 @@ function updateURLState() {
     if (typeof SEL_JUD1 !== 'undefined' && SEL_JUD1) params.set('j1', SEL_JUD1);
     if (typeof SEL_JUD2 !== 'undefined' && SEL_JUD2) params.set('j2', SEL_JUD2);
 
-    // Modificăm adresa din browser fără să dăm refresh paginii
+    // Modificăm adresa fără refresh
     const newUrl = window.location.pathname + '?' + params.toString();
     window.history.replaceState({}, '', newUrl);
 }
 
-// 2. Funcția care citește URL-ul când intri prima dată pe pagină
+// 2. Funcția care citește URL-ul la pornire
 function readURLState() {
     const params = new URLSearchParams(window.location.search);
-    if (Array.from(params).length === 0) return; // Niciun parametru, încărcăm normal
+    if (Array.from(params).length === 0) return; 
     
-    // Citim Hartă & Metrici
+    // Citim Hartă & Timp & Filtre
     if (params.has('layer')) ALAYER = params.get('layer');
     if (params.has('metric')) {
         const metricEl = document.getElementById('m-metric');
         if (metricEl) metricEl.value = params.get('metric');
     }
-    
-    // Citim Timpul
     if (params.has('tmode')) TMODE = params.get('tmode');
     if (params.has('y')) {
         const ySlider = document.getElementById('yslider');
@@ -1395,17 +1399,44 @@ function readURLState() {
             if (vLabel) vLabel.textContent = params.get('y');
         }
     }
-
-    // Citim UAT Filter
     if (params.has('ujud')) {
         const uatJudEl = document.getElementById('uat-jud');
         if (uatJudEl) uatJudEl.value = params.get('ujud');
     }
-
-    // Citim Județele pentru grafice
     if (params.has('j1')) SEL_JUD1 = params.get('j1');
     if (params.has('j2')) SEL_JUD2 = params.get('j2');
+
+    // [NOU] Auto-Switch Tab: Citește tab-ul din URL și apasă butonul corespunzător
+    if (params.has('tab')) {
+        window.CURRENT_TAB = params.get('tab');
+        setTimeout(() => {
+            const tabName = params.get('tab');
+            // Găsim butonul care activează tab-ul și îi simulăm un click
+            const btns = document.querySelectorAll('[onclick*="switchTab"]');
+            btns.forEach(btn => {
+                if (btn.getAttribute('onclick').includes(tabName)) {
+                    btn.click();
+                }
+            });
+        }, 150); // Așteptăm 150ms să se încarce pagina, apoi dăm click
+    }
 }
+
+// 3. [NOU] Ascultător global care pândește ce tab apeși și actualizează linkul
+document.addEventListener('DOMContentLoaded', () => {
+    const tabBtns = document.querySelectorAll('[onclick*="switchTab"]');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Extragem numele tab-ului (ex: din "switchTab('map-tab')" trage doar 'map-tab')
+            const match = this.getAttribute('onclick').match(/['"]([^'"]+)['"]/);
+            if (match) {
+                window.CURRENT_TAB = match[1];
+                // Lăsăm 100ms să se schimbe interfața, apoi forțăm update-ul linkului
+                setTimeout(updateURLState, 100);
+            }
+        });
+    });
+});
   
 function initMap() {
     MAP = L.map('map', {
