@@ -1267,6 +1267,7 @@ function updateCharts() {
   buildMonthChart();
   buildSezonChart();
   buildDNChart();
+  updateURLState();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1341,6 +1342,71 @@ let MAP, DARK_TILES, LIGHT_TILES;
 let HLAYER,GLAYER,CLAYER,PLAYER,UALAYER;
 let ALAYER='heat', TMODE='all', PLAYIV=null;
 
+// ═══════════════════════════════════════════════════════
+// SMART LINKS (URL STATE MANAGER)
+// ═══════════════════════════════════════════════════════
+
+// 1. Funcția care scrie în URL la fiecare click
+function updateURLState() {
+    const params = new URLSearchParams();
+    
+    // Setări Hartă
+    if (typeof ALAYER !== 'undefined') params.set('layer', ALAYER);
+    const metricEl = document.getElementById('m-metric');
+    if (metricEl) params.set('metric', metricEl.value);
+    
+    // Setări Timp
+    if (typeof TMODE !== 'undefined') params.set('tmode', TMODE);
+    const ySlider = document.getElementById('yslider');
+    if (typeof TMODE !== 'undefined' && TMODE === 'year' && ySlider) {
+        params.set('y', ySlider.value);
+    }
+    
+    // Setări Filtre & Grafice
+    const uatJudEl = document.getElementById('uat-jud');
+    if (uatJudEl && uatJudEl.value) params.set('ujud', uatJudEl.value);
+    if (typeof SEL_JUD1 !== 'undefined' && SEL_JUD1) params.set('j1', SEL_JUD1);
+    if (typeof SEL_JUD2 !== 'undefined' && SEL_JUD2) params.set('j2', SEL_JUD2);
+
+    // Modificăm adresa din browser fără să dăm refresh paginii
+    const newUrl = window.location.pathname + '?' + params.toString();
+    window.history.replaceState({}, '', newUrl);
+}
+
+// 2. Funcția care citește URL-ul când intri prima dată pe pagină
+function readURLState() {
+    const params = new URLSearchParams(window.location.search);
+    if (Array.from(params).length === 0) return; // Niciun parametru, încărcăm normal
+    
+    // Citim Hartă & Metrici
+    if (params.has('layer')) ALAYER = params.get('layer');
+    if (params.has('metric')) {
+        const metricEl = document.getElementById('m-metric');
+        if (metricEl) metricEl.value = params.get('metric');
+    }
+    
+    // Citim Timpul
+    if (params.has('tmode')) TMODE = params.get('tmode');
+    if (params.has('y')) {
+        const ySlider = document.getElementById('yslider');
+        if (ySlider) {
+            ySlider.value = params.get('y');
+            const vLabel = document.getElementById('yslider-v');
+            if (vLabel) vLabel.textContent = params.get('y');
+        }
+    }
+
+    // Citim UAT Filter
+    if (params.has('ujud')) {
+        const uatJudEl = document.getElementById('uat-jud');
+        if (uatJudEl) uatJudEl.value = params.get('ujud');
+    }
+
+    // Citim Județele pentru grafice
+    if (params.has('j1')) SEL_JUD1 = params.get('j1');
+    if (params.has('j2')) SEL_JUD2 = params.get('j2');
+}
+  
 function initMap() {
     MAP = L.map('map', {
         center: [45.95, 24.96], // Centrat mai bine
@@ -1418,6 +1484,7 @@ function refreshMap(){
   else if(ALAYER==='points') buildPointsLayer(m);
   else if(ALAYER==='uat')    buildUatLayer(m);
   buildRank();
+  updateURLState();
 }
 function onMetricChange(){
   updateMetricNote();
@@ -2024,6 +2091,7 @@ const TOOLTIPS = {
   'top-frp': '<strong>Top 20 detecții după FRP</strong>Cele mai intense detecții termice înregistrate, sortate după Fire Radiative Power (MW). Coloana Brightness arată temperatura pixelului în grade Kelvin (K) — valorile peste 400K indică incendii severe, peste 600K sunt excepționale și asociate cu incendii de pădure majore.',
 };
 
+readURLState();
 document.addEventListener('DOMContentLoaded', () => {
   const ttBox = document.getElementById('tt-box');
   document.addEventListener('mouseover', e => {
