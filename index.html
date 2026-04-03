@@ -1557,7 +1557,6 @@ async function buildUatLayer(m){
   updLegend(Math.round(mx),MUNITS[m],true);
   if(selJ&&UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds(),{padding:[20,20]});
   buildRank();
-}
 
 function onUatJudChange(){if(ALAYER==='uat')refreshMap();}
 
