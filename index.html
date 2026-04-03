@@ -1514,51 +1514,68 @@ async function buildUatLayer(m){
     } return '#f0f0f0';
   }
 
-  UALAYER=L.geoJSON({type:'FeatureCollection',features:feats},{
-    style:f=>{ const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
-      // Fallback-ul pentru UAT fără foc devine '#1f2430' (închis) ca să contrasteze cu lumina de la maxim
-      return{color:'rgba(80,80,80,.4)',weight:.7,fillColor:v>0?lightFireHex(t):'#1f2430',fillOpacity:v>0?.2+.7*t:.15};},
-    onEachFeature:(f,layer)=>{
-      const p=f.properties,row=statsLk[p.siruta],v=row?mVal(row,m):null;
-      layer.bindTooltip(`<b>${p.name}</b><br>${MLABELS[m]}: <b>${v!==null?fmtVal(v,m):'fără date'}</b>`,{sticky:true});
-      layer.on('click',()=>{ if(row) showUATInfo(row,p,m); });
-    }
-  }).addTo(MAP);
-  updLegend(Math.round(mx),MUNITS[m],true);
-  if(selJ && UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds());
-}
-  UALAYER=L.geoJSON({type:'FeatureCollection',features:feats},{
-    style:f=>{
-      const row=statsLk[f.properties.siruta],v=row?mVal(row,m):0,t=Math.sqrt(v/mx);
-      return{color:'rgba(80,80,80,.4)',weight:.7,fillColor:v>0?lightFireHex(t):'#e8e8e8',fillOpacity:v>0?.2+.7*t:.15};
+async function buildUatLayer(m) {
+  if (!MAP) return;
+  const ok = await loadUATData(); 
+  if (!ok) return;
+  
+  const selJEl = document.getElementById('uat-jud');
+  const selJ = selJEl ? selJEl.value : '';
+  const uatData = getUatDataFiltered(selJ);
+  
+  const statsLk = {}; 
+  uatData.forEach(u => statsLk[u.UAT_SIRUTA] = u);
+  
+  const vals = uatData.map(u => mVal(u, m));
+  const mx = Math.max(...vals, 1);
+  
+  // AICI ESTE LINIA CARE LIPSEA (definirea lui feats)
+  let feats = UAT_GEO.features; 
+  if (selJ) {
+      feats = feats.filter(f => f.properties.cc === selJ);
+  }
+
+  function lightFireHex(t) {
+    // INVERSAT: 0 (Minim) = Roșu închis, 1 (Maxim) = Deschis/Alb
+    const stops = [[0,[177,0,38]],[.3,[240,59,32]],[.55,[253,141,60]],[.8,[254,204,92]],[1,[240,240,240]]];
+    for(let i=1; i<stops.length; i++) {
+      if(t <= stops[i][0]) {
+        const f = (t - stops[i-1][0]) / (stops[i][0] - stops[i-1][0]);
+        const a = stops[i-1][1], b = stops[i][1];
+        return '#' + [0,1,2].map(j => Math.round(a[j] + (b[j]-a[j])*f).toString(16).padStart(2,'0')).join('');
+      }
+    } 
+    return '#f0f0f0';
+  }
+
+  UALAYER = L.geoJSON({type: 'FeatureCollection', features: feats}, {
+    style: f => { 
+      const row = statsLk[f.properties.siruta];
+      const v = row ? mVal(row, m) : 0;
+      const t = Math.sqrt(v / mx);
+      
+      // UAT fără foc devine '#1f2430' (închis)
+      return {
+          color: 'rgba(80,80,80,.4)', 
+          weight: 0.7, 
+          fillColor: v > 0 ? lightFireHex(t) : '#1f2430', 
+          fillOpacity: v > 0 ? 0.2 + 0.7 * t : 0.15
+      };
     },
-    onEachFeature:(f,layer)=>{
-      const p=f.properties,row=statsLk[p.siruta],v=row?mVal(row,m):null;
-      layer.bindTooltip(`<b>${p.name}</b> · ${p.cc}<br>${MLABELS[m]}: <b>${v!==null?fmtVal(v,m):'fără date'}</b>`,{sticky:true});
-      layer.on('click',()=>{
-        const popup=`<div class="ptitle">${p.name}</div>
-          <div class="ptype">${TS[p.type]||p.type} · ${p.cn||p.cc}</div>
-          <div class="prow"><span>SIRUTA</span><span class="pval">${p.siruta}</span></div>
-          <div class="pdiv"></div>
-          ${row?`
-          <div class="prow"><span>Nr. detecții</span><span class="pval ${m==='count'?'pact':''}">${row.count.toLocaleString('ro-RO')}</span></div>
-          <div class="prow"><span>FRP mediu</span><span class="pval ${m==='frp_mean'?'pact':''}">${row.frp_mean} MW</span></div>
-          <div class="prow"><span>FRP maxim</span><span class="pval ${m==='frp_max'?'pact':''}">${row.frp_max||'—'} MW</span></div>
-          <div class="prow"><span>FRP total</span><span class="pval ${m==='frp_sum'?'pact':''}">${row.frp_sum?((row.frp_sum/1000).toFixed(1)+' GW'):'—'}</span></div>
-          `:'<div style="color:var(--muted);font-size:.65rem">Fără detecții înregistrate</div>'}`;
-        layer.bindPopup(popup).openPopup();
-        if(row)showUATInfo(row,p,m);
-      });
-      layer.on('mouseover',function(){this.setStyle({weight:2,color:'#cc3300'});});
-      layer.on('mouseout', function(){UALAYER.resetStyle(this);});
+    onEachFeature: (f, layer) => {
+      const p = f.properties;
+      const row = statsLk[p.siruta];
+      const v = row ? mVal(row, m) : null;
+      layer.bindTooltip(`<b>${p.name}</b><br>${MLABELS[m]}: <b>${v !== null ? fmtVal(v, m) : 'fără date'}</b>`, {sticky: true});
+      layer.on('click', () => { if(row) showUATInfo(row, p, m); });
     }
   }).addTo(MAP);
-
-  updLegend(Math.round(mx),MUNITS[m],true);
-  if(selJ&&UALAYER.getLayers().length>0) MAP.fitBounds(UALAYER.getBounds(),{padding:[20,20]});
-  buildRank();
-
-function onUatJudChange(){if(ALAYER==='uat')refreshMap();}
+  
+  updLegend(Math.round(mx), MUNITS[m], true);
+  if (selJ && UALAYER.getLayers().length > 0) {
+      MAP.fitBounds(UALAYER.getBounds());
+  }
+}
 
 // ── Ranking ────────────────────────────────────────────────────────────────
 function buildRank(){
